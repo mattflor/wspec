@@ -1,0 +1,15 @@
+Documentation for the Wolbachia speciation (wspec) module
+*********************************************************
+
+.. automodule:: wspec
+
+
+analytical
+==========
+
+Analytical solutions for stability of cytoplasmic 
+incompatibility (CI) patterns, gene flow, and reproductive values 
+of migrants between populations with different infection states.
+   
+.. automodule:: wspec.analytical
+   :members:

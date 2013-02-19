@@ -1,0 +1,1296 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Welcome to wspec’s documentation! &mdash; wspec 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="wspec 0.1 documentation" href="#" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="#">wspec 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <div class="section" id="welcome-to-wspec-s-documentation">
+<h1>Welcome to wspec&#8217;s documentation!<a class="headerlink" href="#welcome-to-wspec-s-documentation" title="Permalink to this headline">¶</a></h1>
+<p>This is the Wolbachia speciation (wspec) module for numerical
+simulations of speciation events driven by Wolbachia-induced
+cytoplasmic incompatibility (CI) and reinforcement processes.</p>
+<p>Contents:</p>
+<div class="toctree-wrapper compound">
+<ul class="simple">
+</ul>
+</div>
+</div>
+<div class="section" id="analytical">
+<h1>analytical<a class="headerlink" href="#analytical" title="Permalink to this headline">¶</a></h1>
+<p>Analytical solutions for stability of cytoplasmic
+incompatibility (CI) patterns, gene flow, and reproductive values
+of migrants between populations with different infection states.</p>
+<img alt="_images/uninfected_mainland.png" src="_images/uninfected_mainland.png" />
+<img alt="_images/infected_mainland.png" src="_images/infected_mainland.png" />
+<span class="target" id="module-wspec.analytical"></span><span class="target" id="module-analytical"></span><dl class="function">
+<dt id="wspec.analytical.dynamics_IM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">dynamics_IM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em>, <em>x</em><big>)</big><a class="headerlink" href="#wspec.analytical.dynamics_IM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection dynamics of Wolbachia for the scenario with an infected 
+mainland (IM), iterative map.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+<dt>x: float in interval [0, 1]</dt>
+<dd>infection frequency of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>infection frequency in the next generation</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.dynamics_SP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">dynamics_SP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em>, <em>x</em><big>)</big><a class="headerlink" href="#wspec.analytical.dynamics_SP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection dynamics of Wolbachia in a single host population (SP), 
+iterative map returns the infection frequency in the next
+generation.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+<dt>x: float in interval [0, 1]</dt>
+<dd>infection frequency of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>infection frequency in the next generation</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.dynamics_UM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">dynamics_UM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em>, <em>x</em><big>)</big><a class="headerlink" href="#wspec.analytical.dynamics_UM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection dynamics of Wolbachia for the scenario with an 
+uninfected mainland (UM), iterative map returns the infection 
+frequency in the next generation.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+<dt>x: float in interval [0, 1]</dt>
+<dd>infection frequency of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>infection frequency in the next generation</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix1_IM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix1_IM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix1_IM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fixpoint <span class="math">\(x_1^{\ast}\)</span> for the scenario with an infected mainland (IM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix1_SP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix1_SP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix1_SP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection frequency fixpoint <span class="math">\(x_1^{\ast}\)</span> for a single host population (SP).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix1_UM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix1_UM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix1_UM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fixpoint <span class="math">\(x_1^{\ast}\)</span> for the scenario with an uninfected mainland (UM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix2_IM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix2_IM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix2_IM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fixpoint <span class="math">\(x_2^{\ast}\)</span> for the scenario with an infected mainland (IM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix2_SP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix2_SP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix2_SP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection frequency fixpoint <span class="math">\(x_2^{\ast}\)</span> for a single host population (SP).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix2_UM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix2_UM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix2_UM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fixpoint <span class="math">\(x_2^{\ast}\)</span> for the scenario with an uninfected mainland (UM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix3_IM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix3_IM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix3_IM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fixpoint <span class="math">\(x_3^{\ast}\)</span> for the scenario with an infected mainland (IM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix3_SP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix3_SP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix3_SP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection frequency fixpoint <span class="math">\(x_3^{\ast}\)</span> for a single host population (SP).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix3_UM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix3_UM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix3_UM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Fixpoint <span class="math">\(x_3^{\ast}\)</span> for the scenario with an uninfected mainland (UM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix_SP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix_SP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix_SP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection frequency fixpoints for a single host population (SP).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: tuple of three floats</dt>
+<dd>equilibrium frequencies <span class="math">\(x_1^{\ast}\)</span>, <span class="math">\(x_2^{\ast}\)</span>, and <span class="math">\(x_3^{\ast}\)</span> of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.fix_UM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">fix_UM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.fix_UM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Infection frequency fixpoints for the scenario with an infected 
+mainland (IM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: tuple of three floats</dt>
+<dd>equilibrium frequencies <span class="math">\(x_1^{\ast}\)</span>, <span class="math">\(x_2^{\ast}\)</span>, and <span class="math">\(x_3^{\ast}\)</span> of Wolbachia</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.gff_DS">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">gff_DS</tt><big>(</big><em>m</em>, <em>s</em><big>)</big><a class="headerlink" href="#wspec.analytical.gff_DS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gene flow factor (gff) for the case of divergent selection (DS).
+Residents have a viability advantage of <cite>s</cite> over migrants, 
+equivalent to migrants having a viability cost of <span class="math">\(\frac{s}{1+s}\)</span>.
+Derived from fitness graph for the reproductive value of a migrant.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>gene flow factor</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.lcrit_SP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">lcrit_SP</tt><big>(</big><em>f</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.lcrit_SP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Critical CI level (lcrit) for a single host population (SP).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical CI level</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.lcrit_UM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">lcrit_UM</tt><big>(</big><em>f</em>, <em>m</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.lcrit_UM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Critical CI level (lcrit) for the scenario with an uninfected 
+mainland (UM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical CI level</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.mcrit_IM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">mcrit_IM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.mcrit_IM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Critical migration rate (mcrit) for the scenario with an infected 
+mainland (IM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.mcrit_IMA">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">mcrit_IMA</tt><big>(</big><em>f</em>, <em>ci</em>, <em>s</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.mcrit_IMA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Critical migration rate (mcrit) for the scenario with an infected 
+mainland (IM) with local host adaptation (A).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.mcrit_UM">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">mcrit_UM</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.mcrit_UM" title="Permalink to this definition">¶</a></dt>
+<dd><p>Critical migration rate (mcrit) for the scenario with an uninfected 
+mainland (UM).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.mcrit_UMA">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">mcrit_UMA</tt><big>(</big><em>f</em>, <em>ci</em>, <em>s</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.mcrit_UMA" title="Permalink to this definition">¶</a></dt>
+<dd><p>Critical migration rate (mcrit) for the scenario with an uninfected 
+mainland (UM) with local host adaptation (A).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>critical migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.meff_DS">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">meff_DS</tt><big>(</big><em>m</em>, <em>s</em><big>)</big><a class="headerlink" href="#wspec.analytical.meff_DS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Effective migration rate (meff) for the case of divergent selection 
+(DS). Residents have a viability advantage of <cite>s</cite> over migrants, 
+equivalent to migrants having a viability cost of <span class="math">\(\frac{s}{1+s}\)</span>.
+Derived from fitness graph for the reproductive value of a migrant.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>m: float in interval [0, 1]</dt>
+<dd>migration rate</dd>
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>effective migration rate</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.prcrit">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">prcrit</tt><big>(</big><em>ci</em>, <em>q</em>, <em>s</em><big>)</big><a class="reference internal" href="_modules/wspec/analytical.html#prcrit"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.analytical.prcrit" title="Permalink to this definition">¶</a></dt>
+<dd><p>Minimal rejection probability (pr) of a mutant allele at the locus 
+for female mating preference to spread in an uninfected island 
+receiving migration from an infected mainland.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>q: float in interval [0, 1]</dt>
+<dd>transition probability to a new mating round</dd>
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>minimal rejection probability</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_DS">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_DS</tt><big>(</big><em>s</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_DS" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of a migrant for the case of divergent 
+selection (DS). Residents have a viability advantage of <cite>s</cite> over 
+migrants, equivalent to migrants having a viability cost of 
+<span class="math">\(\frac{s}{1+s}\)</span>. Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_FUHETCL">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_FUHETCL</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_FUHETCL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an uninfected female (FU) in a 
+heterogenous host population (HET), <cite>per class</cite> (CL) reproductive 
+value (as opposed to <cite>per capita</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_FUHETCP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_FUHETCP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_FUHETCP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an uninfected female (FU) in a 
+heterogenous host population (HET), <cite>per capita</cite> (CP) reproductive 
+value (as opposed to <cite>per class</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_FUHOMW">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_FUHOMW</tt><big>(</big><em>f</em>, <em>ci</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_FUHOMW" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an uninfected female migrant (FU) in a 
+homogenous Wolbachia infected population (HOMW). This applies to 
+the case of perfect Wolbachia transmission, <span class="math">\(t=1\)</span>. Derived from 
+fitness graph:</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_FWHETCL">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_FWHETCL</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_FWHETCL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an infected female (FW) in a heterogenous 
+host population (HET), <cite>per class</cite> (CL) reproductive value (as 
+opposed to <cite>per capita</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_FWHETCP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_FWHETCP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_FWHETCP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of a Wolbachia infected female (FW) in a 
+heterogenous host population (HET), <cite>per capita</cite> (CP) reproductive 
+value (as opposed to <cite>per class</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_FWHOMU">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_FWHOMU</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_FWHOMU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of a Wolbachia infected female migrant (FW)
+in a homogenous uninfected population (HOMU). Derived from fitness 
+graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_IPHOMU">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_IPHOMU</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_IPHOMU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Average reproductive value of a migrant from an infected 
+population (IP), i.e. where the Wolbachia infection is at a stable 
+frequency below 1 due to imperfect transmission, in a homogenous 
+uninfected population (HOU). Averaged over sexes (F/M) and 
+cytotypes (U/W). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_MUHETCL">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_MUHETCL</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_MUHETCL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an uninfected male (MU) in a heterogenous 
+host population (HET), <cite>per class</cite> (CL) reproductive value (as 
+opposed to <cite>per capita</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_MUHETCP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_MUHETCP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_MUHETCP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an uninfected male (MU) in a heterogenous 
+host population (HET), <cite>per capita</cite> (CP) reproductive value (as 
+opposed to <cite>per class</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_MUHOMW">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_MUHOMW</tt><big>(</big><em>f</em>, <em>ci</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_MUHOMW" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an uninfected male migrant (MU) in a 
+homogenous Wolbachia infected population (HOMW). This applies to 
+the case of perfect Wolbachia transmission, t=1.
+Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_MWHETCL">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_MWHETCL</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_MWHETCL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an infected male (MW) in a heterogenous 
+host population (HET), <cite>per class</cite> (CL) reproductive value (as 
+opposed to <cite>per capita</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_MWHETCP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_MWHETCP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_MWHETCP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of a Wolbachia infected male (MW) in a 
+heterogenous host population (HET), <cite>per capita</cite> (CP) reproductive 
+value (as opposed to <cite>per class</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_MWHOMU">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_MWHOMU</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_MWHOMU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of a Wolbachia infected male migrant (MW) 
+in a homogenous uninfected population (HOMU). Derived from fitness 
+graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_UHETCL">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_UHETCL</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_UHETCL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Average reproductive value of an uninfected host (U) in a 
+heterogenous population (HET), <cite>per class</cite> (CL) reproductive value 
+(as opposed to <cite>per capita</cite>). Derived from fitness graph. 
+Averaged over the two sexes.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_UHETCP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_UHETCP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_UHETCP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Average reproductive value of an uninfected host (U) in a 
+heterogenous population (HET), <cite>per capita</cite> (CP) reproductive 
+value (as opposed to <cite>per class</cite>). Derived from fitness graph. 
+Averaged over the two sexes.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_UHOMW">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_UHOMW</tt><big>(</big><em>f</em>, <em>ci</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_UHOMW" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an uninfected migrant (U) in a a 
+homogenous Wolbachia infected population (HOMW). This applies to 
+the case of perfect Wolbachia transmission, t=1. Derived from 
+fitness graph. Averaged over the two sexes.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_WHETCL">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_WHETCL</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_WHETCL" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of an infected host (W) in a heterogenous host 
+population (HET), <cite>per class</cite> (CL) reproductive value (as opposed to <cite>per 
+capita</cite>). Derived from fitness graph.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_WHETCP">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_WHETCP</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_WHETCP" title="Permalink to this definition">¶</a></dt>
+<dd><p>Average reproductive value of a Wolbachia infected host (W) in 
+a heterogenous population (HET), <cite>per capita</cite> (CP) reproductive 
+value (as opposed to <cite>per class</cite>). Derived from fitness graph. 
+Averaged over the two sexes.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.reproval_WHOMU">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">reproval_WHOMU</tt><big>(</big><em>f</em>, <em>ci</em>, <em>t</em><big>)</big><a class="headerlink" href="#wspec.analytical.reproval_WHOMU" title="Permalink to this definition">¶</a></dt>
+<dd><p>Reproductive value of a Wolbachia infected migrant (W) in a 
+homogenous uninfected population (HOU). Derived from fitness graph.
+Averaged over the two sexes.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>f: float in interval [0, 1]</dt>
+<dd>fecundity reduction in infected females</dd>
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>t: float in interval [0, 1]</dt>
+<dd>transmission rate of Wolbachia</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>reproductive value</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.xPref">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">xPref</tt><big>(</big><em>ci</em>, <em>pr</em>, <em>q</em>, <em>s</em><big>)</big><a class="reference internal" href="_modules/wspec/analytical.html#xPref"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.analytical.xPref" title="Permalink to this definition">¶</a></dt>
+<dd><p>Approximated equilibrium frequency of a mutant allele at the locus 
+for female mating preference in an uninfected island receiving 
+migration from an infected mainland.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>ci: float in interval [0, 1]</dt>
+<dd>level of CI</dd>
+<dt>pr: float in interval [0, 1]</dt>
+<dd>rejection probability of mating preference mutant allele</dd>
+<dt>q: float in interval [0, 1]</dt>
+<dd>transition probability to a new mating round</dd>
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of mutant preference allele</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.analytical.xTprefEQ">
+<tt class="descclassname">wspec.analytical.</tt><tt class="descname">xTprefEQ</tt><big>(</big><em>pr</em>, <em>s</em>, <em>xPref</em><big>)</big><a class="reference internal" href="_modules/wspec/analytical.html#xTprefEQ"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.analytical.xTprefEQ" title="Permalink to this definition">¶</a></dt>
+<dd><p>Modified from Kirkpatrick (1982), equation (2).</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>pr: float in interval [0, 1]</dt>
+<dd>rejection probability of mating preference mutant allele</dd>
+<dt>s: positive float</dt>
+<dd>selection coefficient</dd>
+<dt>xPref: float in interval [0, 1]</dt>
+<dd>frequency of preference allele in Kirkpatrick&#8217;s model</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: float</dt>
+<dd>equilibrium frequency of preferred trait</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="indices-and-tables">
+<h1>Indices and tables<a class="headerlink" href="#indices-and-tables" title="Permalink to this headline">¶</a></h1>
+<ul class="simple">
+<li><a class="reference internal" href="genindex.html"><em>Index</em></a></li>
+<li><a class="reference internal" href="py-modindex.html"><em>Module Index</em></a></li>
+<li><a class="reference internal" href="search.html"><em>Search Page</em></a></li>
+</ul>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+  <h3><a href="#">Table Of Contents</a></h3>
+  <ul>
+<li><a class="reference internal" href="#">Welcome to wspec&#8217;s documentation!</a><ul>
+</ul>
+</li>
+<li><a class="reference internal" href="#analytical">analytical</a></li>
+<li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
+</ul>
+
+  <h3>This Page</h3>
+  <ul class="this-page-menu">
+    <li><a href="_sources/index.txt"
+           rel="nofollow">Show Source</a></li>
+  </ul>
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="#">wspec 0.1 documentation</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Matthias Flor.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
