@@ -1,3 +1,11 @@
+"""
+.. module:: utilities
+   :platform: Unix
+   :synopsis: Utility functions
+
+.. moduleauthor:: Matthias Flor <matthias.c.flor@gmail.com>
+
+"""
 import numpy as np
 from numpy import sum
 import matplotlib.pyplot as plt
@@ -75,9 +83,7 @@ def panda_index(labels, names=None, dtype='|S10'):
         names: list of strings
     
     Example usage:
-        >>> labels = [['wine','water','beer'], \
-                      ['0.2','0.5'], \
-                      ['to go','for here']]
+        >>> labels = [['wine','water','beer'], [0.2','0.5'], ['to go','for here']]
         >>> names = ['beverage','size','order']
         >>> index = make_index(labels,names)
         >>> index
