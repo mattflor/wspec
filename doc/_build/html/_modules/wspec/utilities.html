@@ -1,0 +1,304 @@
+
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>wspec.utilities &mdash; wspec 0.1 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/default.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.1',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="top" title="wspec 0.1 documentation" href="../../index.html" />
+    <link rel="up" title="Module code" href="../index.html" /> 
+  </head>
+  <body>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">wspec 0.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" accesskey="U">Module code</a> &raquo;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body">
+            
+  <h1>Source code for wspec.utilities</h1><div class="highlight"><pre>
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">.. module:: utilities</span>
+<span class="sd">   :platform: Unix</span>
+<span class="sd">   :synopsis: Utility functions</span>
+
+<span class="sd">.. moduleauthor:: Matthias Flor &lt;matthias.c.flor@gmail.com&gt;</span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="kn">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">numpy</span> <span class="kn">import</span> <span class="nb">sum</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="kn">as</span> <span class="nn">plt</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="kn">from</span> <span class="nn">pprint</span> <span class="kn">import</span> <span class="n">PrettyPrinter</span>
+
+<div class="viewcode-block" id="list_shape"><a class="viewcode-back" href="../../index.html#wspec.utilities.list_shape">[docs]</a><span class="k">def</span> <span class="nf">list_shape</span><span class="p">(</span><span class="n">list2d</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Return the `shape` of a 2-dimensional nested list.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        list2d: nested list</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        out: shape tuple</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">shape</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">list2d</span><span class="p">))]</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">list2d</span><span class="p">):</span>
+        <span class="n">shape</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">l</span><span class="p">)</span>
+    <span class="k">return</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">shape</span><span class="p">)</span>
+</div>
+<div class="viewcode-block" id="extend"><a class="viewcode-back" href="../../index.html#wspec.utilities.extend">[docs]</a><span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">dim</span><span class="p">,</span> <span class="n">pos</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Broadcast array `arr` to new extended dimension `dim`.</span>
+<span class="sd">    </span>
+<span class="sd">    This is achieved by inserting the appropriate number of new axes.</span>
+<span class="sd">    The original axes of `arr` become positioned at `pos`. Thus, the </span>
+<span class="sd">    list `pos` must have length equal to `arr.ndim`.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        arr: ndarray</span>
+<span class="sd">        dim: int</span>
+<span class="sd">        pos: int or list of ints</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        out: ndarray</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">indexer</span> <span class="o">=</span> <span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">newaxis</span><span class="p">]</span> <span class="o">*</span> <span class="n">dim</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">pos</span><span class="p">,</span><span class="nb">int</span><span class="p">):</span> <span class="n">pos</span> <span class="o">=</span> <span class="p">[</span><span class="n">pos</span><span class="p">]</span>       <span class="c"># enable passing of a single int posistion</span>
+    <span class="k">for</span> <span class="n">p</span> <span class="ow">in</span> <span class="n">pos</span><span class="p">:</span>
+        <span class="n">indexer</span><span class="p">[</span><span class="n">p</span><span class="p">]</span> <span class="o">=</span> <span class="nb">slice</span><span class="p">(</span><span class="bp">None</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">arr</span><span class="p">[</span><span class="n">indexer</span><span class="p">]</span>
+</div>
+<div class="viewcode-block" id="sum_along_axes"><a class="viewcode-back" href="../../index.html#wspec.utilities.sum_along_axes">[docs]</a><span class="k">def</span> <span class="nf">sum_along_axes</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sum along multiple axes.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        arr: ndarray</span>
+<span class="sd">            Input array.</span>
+<span class="sd">        axes: integer or list of integers</span>
+<span class="sd">            Axes along which `arr` is summed.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        out: ndarray</span>
+<span class="sd">            Output array. The shape of `out` is identical to the </span>
+<span class="sd">            shape of `arr` along `axes`.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span><span class="nb">int</span><span class="p">):</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">axes</span><span class="p">]</span>       <span class="c"># enable passing of a single int axis</span>
+    <span class="n">_axes</span> <span class="o">=</span> <span class="nb">range</span><span class="p">(</span><span class="n">arr</span><span class="o">.</span><span class="n">ndim</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span> <span class="n">_axes</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">apply_over_axes</span><span class="p">(</span><span class="nb">sum</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">_axes</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+</div>
+<span class="k">def</span> <span class="nf">sum_over_axes</span><span class="p">(</span><span class="n">arr</span><span class="p">,</span> <span class="n">axes</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span><span class="nb">int</span><span class="p">):</span> <span class="n">axes</span> <span class="o">=</span> <span class="p">[</span><span class="n">axes</span><span class="p">]</span>       <span class="c"># enable passing of a single int axis</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">apply_over_axes</span><span class="p">(</span><span class="nb">sum</span><span class="p">,</span> <span class="n">arr</span><span class="p">,</span> <span class="n">axes</span><span class="p">)</span><span class="o">.</span><span class="n">squeeze</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="panda_index"><a class="viewcode-back" href="../../index.html#wspec.utilities.panda_index">[docs]</a><span class="k">def</span> <span class="nf">panda_index</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="bp">None</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="s">&#39;|S10&#39;</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a pandas.MultiIndex with row names contained in the nested </span>
+<span class="sd">    list `labels` and column names contained in the optional list </span>
+<span class="sd">    `names`.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        labels: nested list of strings</span>
+<span class="sd">        names: list of strings</span>
+<span class="sd">    </span>
+<span class="sd">    Example usage:</span>
+<span class="sd">        &gt;&gt;&gt; labels = [[&#39;wine&#39;,&#39;water&#39;,&#39;beer&#39;], \</span>
+<span class="sd">                      [&#39;0.2&#39;,&#39;0.5&#39;], \</span>
+<span class="sd">                      [&#39;to go&#39;,&#39;for here&#39;]]</span>
+<span class="sd">        &gt;&gt;&gt; names = [&#39;beverage&#39;,&#39;size&#39;,&#39;order&#39;]</span>
+<span class="sd">        &gt;&gt;&gt; index = make_index(labels,names)</span>
+<span class="sd">        &gt;&gt;&gt; index</span>
+<span class="sd">        </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">names</span><span class="o">==</span><span class="bp">None</span><span class="p">:</span>
+        <span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;axis{0}&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">))]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">assert</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span><span class="o">==</span><span class="nb">len</span><span class="p">(</span><span class="n">names</span><span class="p">)</span>
+    <span class="n">sh</span> <span class="o">=</span> <span class="n">list_shape</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+    <span class="n">n_axes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">labels</span><span class="p">)</span>
+    <span class="n">n_total</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">sh</span><span class="p">)</span>
+    <span class="n">ctile</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span> <span class="p">([</span><span class="mi">1</span><span class="p">],</span><span class="n">np</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">sh</span><span class="p">)[:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="p">)</span>
+    <span class="n">crep</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">concatenate</span><span class="p">(</span> <span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">cumprod</span><span class="p">(</span><span class="n">sh</span><span class="p">[::</span><span class="o">-</span><span class="mi">1</span><span class="p">])[:</span><span class="o">-</span><span class="mi">1</span><span class="p">][::</span><span class="o">-</span><span class="mi">1</span><span class="p">],[</span><span class="mi">1</span><span class="p">])</span> <span class="p">)</span>
+    <span class="n">replabels</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">empty</span><span class="p">((</span><span class="n">n_axes</span><span class="p">,</span><span class="n">n_total</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">dtype</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">l</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">labels</span><span class="p">):</span>
+        <span class="n">replabels</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span> <span class="n">np</span><span class="o">.</span><span class="n">repeat</span><span class="p">(</span><span class="n">l</span><span class="p">,</span><span class="n">crep</span><span class="p">[</span><span class="n">i</span><span class="p">]),</span> <span class="n">ctile</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="p">)</span>
+    <span class="n">tuples</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="o">*</span><span class="n">replabels</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">MultiIndex</span><span class="o">.</span><span class="n">from_tuples</span><span class="p">(</span><span class="n">tuples</span><span class="p">,</span> <span class="n">names</span><span class="o">=</span><span class="n">names</span><span class="p">)</span>
+</div>
+<span class="k">def</span> <span class="nf">myfloat</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">threshold</span><span class="o">=</span><span class="mf">1e-4</span><span class="p">,</span> <span class="n">absolute_threshold</span><span class="o">=</span><span class="mf">1e-10</span><span class="p">):</span>
+    <span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+    <span class="k">if</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">absolute_threshold</span><span class="p">:</span> <span class="k">return</span> <span class="s">&#39;    ---&#39;</span>
+    <span class="k">elif</span> <span class="n">x</span> <span class="o">&lt;</span> <span class="n">threshold</span><span class="p">:</span> <span class="k">return</span> <span class="s">&#39;    0.0&#39;</span>
+    <span class="k">else</span><span class="p">:</span> <span class="k">return</span> <span class="s">&#39;</span><span class="si">%.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="n">x</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">set_option</span><span class="p">(</span><span class="s">&#39;display.float_format&#39;</span><span class="p">,</span><span class="n">myfloat</span><span class="p">)</span>
+<span class="k">except</span><span class="p">:</span>
+    <span class="n">pd</span><span class="o">.</span><span class="n">set_printoptions</span><span class="p">(</span><span class="n">precision</span><span class="o">=</span><span class="mi">5</span><span class="p">)</span>
+
+<span class="k">class</span> <span class="nc">MyPrettyPrinter</span><span class="p">(</span><span class="n">PrettyPrinter</span><span class="p">):</span>
+    <span class="k">def</span> <span class="nf">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span> <span class="n">maxlevels</span><span class="p">,</span> <span class="n">level</span><span class="p">):</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">object</span><span class="p">,</span> <span class="nb">float</span><span class="p">):</span>
+            <span class="k">return</span> <span class="p">(</span><span class="s">&#39;</span><span class="si">%.4f</span><span class="s">&#39;</span> <span class="o">%</span> <span class="nb">object</span><span class="p">),</span> <span class="bp">True</span><span class="p">,</span> <span class="bp">False</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">PrettyPrinter</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="nb">object</span><span class="p">,</span> <span class="n">context</span><span class="p">,</span>
+                                        <span class="n">maxlevels</span><span class="p">,</span> <span class="n">level</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">make_allele_dictionary</span><span class="p">(</span><span class="n">loci</span><span class="p">,</span> <span class="n">alleles</span><span class="p">):</span>
+    <span class="n">adict</span> <span class="o">=</span> <span class="p">{}</span>    <span class="c"># dictionary for allele name to index conversion</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">locus</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">alleles</span><span class="p">[</span><span class="mi">1</span><span class="p">:]):</span>
+        <span class="k">for</span> <span class="n">allele</span> <span class="ow">in</span> <span class="n">locus</span><span class="p">:</span>
+            <span class="n">adict</span><span class="p">[</span><span class="n">allele</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span><span class="n">locus</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">allele</span><span class="p">))</span>
+    <span class="k">return</span> <span class="n">adict</span>
+
+<div class="viewcode-block" id="reproduction_axes"><a class="viewcode-back" href="../../index.html#wspec.utilities.reproduction_axes">[docs]</a><span class="k">def</span> <span class="nf">reproduction_axes</span><span class="p">(</span><span class="n">loci</span><span class="p">,</span> <span class="n">who</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;female&#39;</span><span class="p">,</span><span class="s">&#39;male&#39;</span><span class="p">,</span><span class="s">&#39;offspring&#39;</span><span class="p">]):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Create a list of reproduction axes names.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        loci: list of strings</span>
+<span class="sd">            names of loci</span>
+<span class="sd">        who: list of strings</span>
+<span class="sd">            Can&#39;t really think of anything else than the default </span>
+<span class="sd">            that would make sense here.</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        out: list of strings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">who</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">who</span> <span class="o">=</span> <span class="p">[</span><span class="n">who</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">loci</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span> <span class="o">+</span> <span class="p">[</span><span class="s">&quot;{0}_{1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">locus</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">who</span> <span class="k">for</span> <span class="n">locus</span> <span class="ow">in</span> <span class="n">loci</span><span class="p">[</span><span class="mi">1</span><span class="p">:]]</span>
+    </div>
+<div class="viewcode-block" id="nuclear_inheritance"><a class="viewcode-back" href="../../index.html#wspec.utilities.nuclear_inheritance">[docs]</a><span class="k">def</span> <span class="nf">nuclear_inheritance</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Returns an array for the inheritance at a nuclear locus with n alleles.&quot;&quot;&quot;</span>
+    <span class="n">ary</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">,</span><span class="n">n</span><span class="p">))</span>
+    <span class="k">for</span> <span class="n">female</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">male</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">offspring</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">female</span><span class="o">==</span><span class="n">male</span><span class="o">==</span><span class="n">offspring</span><span class="p">:</span>
+                    <span class="n">ary</span><span class="p">[</span><span class="n">female</span><span class="p">,</span><span class="n">male</span><span class="p">,</span><span class="n">offspring</span><span class="p">]</span><span class="o">=</span><span class="mf">1.</span>
+                <span class="k">if</span> <span class="n">female</span><span class="o">!=</span><span class="n">male</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="p">(</span><span class="n">offspring</span><span class="o">==</span><span class="n">female</span><span class="p">)</span> <span class="ow">or</span> <span class="p">(</span><span class="n">offspring</span><span class="o">==</span><span class="n">male</span><span class="p">):</span>
+                        <span class="n">ary</span><span class="p">[</span><span class="n">female</span><span class="p">,</span><span class="n">male</span><span class="p">,</span><span class="n">offspring</span><span class="p">]</span><span class="o">=</span><span class="mf">0.5</span>
+    <span class="k">return</span> <span class="n">ary</span>
+</div>
+<div class="viewcode-block" id="diff"><a class="viewcode-back" href="../../index.html#wspec.utilities.diff">[docs]</a><span class="k">def</span> <span class="nf">diff</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Sum over absolute differences between two arrays `a` and `b`.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        a, b: ndarrays</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        out: float</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="n">np</span><span class="o">.</span><span class="n">sum</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">abs</span><span class="p">(</span><span class="n">a</span><span class="o">-</span><span class="n">b</span><span class="p">))</span>
+</div>
+<div class="viewcode-block" id="make_reproduction_allele_names"><a class="viewcode-back" href="../../index.html#wspec.utilities.make_reproduction_allele_names">[docs]</a><span class="k">def</span> <span class="nf">make_reproduction_allele_names</span><span class="p">(</span><span class="n">axes</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        axes: list of strings</span>
+<span class="sd">        config: dict</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        out: nested list of strings</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">loci</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;LOCI&#39;</span><span class="p">]</span>
+    <span class="n">alleles</span> <span class="o">=</span> <span class="n">config</span><span class="p">[</span><span class="s">&#39;ALLELES&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="n">axes</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="s">&#39;population&#39;</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="n">alleles</span><span class="p">[:</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">axes</span> <span class="o">=</span>  <span class="n">axes</span><span class="p">[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">result</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">ax</span> <span class="ow">in</span> <span class="n">axes</span><span class="p">:</span>
+        <span class="n">who</span><span class="p">,</span><span class="n">locus</span> <span class="o">=</span> <span class="n">ax</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;_&#39;</span><span class="p">)</span>     <span class="c"># `who`: &#39;female&#39;, &#39;male&#39;, or &#39;offspring&#39;</span>
+        <span class="n">w</span> <span class="o">=</span> <span class="n">who</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>                    <span class="c"># take first letter, i.e. &#39;f&#39;, &#39;m&#39;, or &#39;o&#39;</span>
+        <span class="n">als</span> <span class="o">=</span> <span class="n">alleles</span><span class="p">[</span><span class="n">loci</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">locus</span><span class="p">)]</span>
+        <span class="n">result</span><span class="o">.</span><span class="n">append</span><span class="p">(</span> <span class="p">[</span><span class="s">&quot;{0}{1}&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">w</span><span class="p">,</span><span class="n">a</span><span class="p">)</span> <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">als</span><span class="p">]</span> <span class="p">)</span>
+    <span class="k">return</span> <span class="n">result</span>
+</div>
+<div class="viewcode-block" id="get_alleles"><a class="viewcode-back" href="../../index.html#wspec.utilities.get_alleles">[docs]</a><span class="k">def</span> <span class="nf">get_alleles</span><span class="p">(</span><span class="n">loci</span><span class="p">,</span> <span class="n">config</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Args:</span>
+<span class="sd">        loci: list of stings</span>
+<span class="sd">        config: dict</span>
+<span class="sd">    </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        out: nested list of ints</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;ALLELES&#39;</span><span class="p">][</span><span class="n">config</span><span class="p">[</span><span class="s">&#39;LOCI&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">index</span><span class="p">(</span><span class="n">locus</span><span class="p">)]</span> <span class="k">for</span> <span class="n">locus</span> <span class="ow">in</span> <span class="n">loci</span><span class="p">]</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" />
+      <input type="submit" value="Go" />
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+    <p class="searchtip" style="font-size: 90%">
+    Enter search terms or a module, class or function name.
+    </p>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li><a href="../../index.html">wspec 0.1 documentation</a> &raquo;</li>
+          <li><a href="../index.html" >Module code</a> &raquo;</li> 
+      </ul>
+    </div>
+    <div class="footer">
+        &copy; Copyright 2013, Matthias Flor.
+      Created using <a href="http://sphinx.pocoo.org/">Sphinx</a> 1.1.3.
+    </div>
+  </body>
+</html>
