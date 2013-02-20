@@ -6,7 +6,13 @@ from pprint import PrettyPrinter
 
 def list_shape(list2d):
     """
-    Return the 'shape' of a 2-dimensional nested list.
+    Return the `shape` of a 2-dimensional nested list.
+    
+    Args:
+        list2d: nested list
+        
+    Returns:
+        out: shape tuple
     """
     shape = [0 for i in range(len(list2d))]
     for i,l in enumerate(list2d):
@@ -15,11 +21,18 @@ def list_shape(list2d):
 
 def extend(arr, dim, pos):
     """
-    Broadcast array 'arr' to new extended dimension 'dim'.
+    Broadcast array `arr` to new extended dimension `dim`.
     
     This is achieved by inserting the appropriate number of new axes.
-    The original axes of 'arr' become positioned at 'pos'. Thus, the list 'pos'
-    must have length equal to arr.ndim.
+    The original axes of `arr` become positioned at `pos`. Thus, the 
+    list `pos` must have length equal to `arr.ndim`.
+    
+    Args:
+        arr: ndarray
+        dim: int
+        pos: int or list of ints
+    Returns:
+        out: ndarray
     """
     indexer = [np.newaxis] * dim
     if isinstance(pos,int): pos = [pos]       # enable passing of a single int posistion
@@ -31,18 +44,16 @@ def sum_along_axes(arr, axes):
     """
     Sum along multiple axes.
     
-    Parameters
-    ----------
-    arr : ndarray
-        Input array.
-    axes : integer or list of integers
-        Axes along which `arr` is summed.
+    Args:
+        arr: ndarray
+            Input array.
+        axes: integer or list of integers
+            Axes along which `arr` is summed.
     
-    Returns
-    -------
-    outarr : ndarray
-        Output array. The shape of `outarr` is identical to the shape of `arr`
-        along `axes`.
+    Returns:
+        out: ndarray
+            Output array. The shape of `out` is identical to the 
+            shape of `arr` along `axes`.
     """
     if isinstance(axes,int): axes = [axes]       # enable passing of a single int axis
     _axes = range(arr.ndim)
@@ -55,21 +66,22 @@ def sum_over_axes(arr, axes):
         
 def panda_index(labels, names=None, dtype='|S10'):
     """
-    Create a pandas.MultiIndex with row names contained in the nested list 'labels' 
-    and column names contained in the list 'names'.
+    Create a pandas.MultiIndex with row names contained in the nested 
+    list `labels` and column names contained in the optional list 
+    `names`.
     
-    Parameters
-    ----------
-    labels : nested list of strings
-    names : list of strings
+    Args:
+        labels: nested list of strings
+        names: list of strings
     
-    Example
-    -------
-    >>> labels = [['wine','water','beer'],['0.2','0.5'],['to go','for here']]
-    >>> names = ['beverage','size','order']
-    >>> index = make_index(labels,names)
-    >>> index
-    
+    Example usage:
+        >>> labels = [['wine','water','beer'], \
+                      ['0.2','0.5'], \
+                      ['to go','for here']]
+        >>> names = ['beverage','size','order']
+        >>> index = make_index(labels,names)
+        >>> index
+        
     """
     if names==None:
         names = ['axis{0}'.format(i) for i in range(len(labels))]
@@ -112,6 +124,19 @@ def make_allele_dictionary(loci, alleles):
     return adict
 
 def reproduction_axes(loci, who=['female','male','offspring']):
+    """
+    Create a list of reproduction axes names.
+    
+    Args:
+        loci: list of strings
+            names of loci
+        who: list of strings
+            Can't really think of anything else than the default 
+            that would make sense here.
+    
+    Returns:
+        out: list of strings
+    """
     if isinstance(who, str):
         who = [who]
     return [loci[0]] + ["{0}_{1}".format(i, locus) for i in who for locus in loci[1:]]
@@ -130,9 +155,26 @@ def nuclear_inheritance(n):
     return ary
 
 def diff(a, b):
+    """
+    Sum over absolute differences between two arrays `a` and `b`.
+    
+    Args:
+        a, b: ndarrays
+    
+    Returns:
+        out: float
+    """
     return np.sum(np.abs(a-b))
 
 def make_reproduction_allele_names(axes, config):
+    """
+    Args:
+        axes: list of strings
+        config: dict
+        
+    Returns:
+        out: nested list of strings
+    """
     loci = config['LOCI']
     alleles = config['ALLELES']
     if axes[0] == 'population':
@@ -148,4 +190,12 @@ def make_reproduction_allele_names(axes, config):
     return result
 
 def get_alleles(loci, config):
+    """
+    Args:
+        loci: list of stings
+        config: dict
+    
+    Returns:
+        out: nested list of ints
+    """
     return [config['ALLELES'][config['LOCI'].index(locus)] for locus in loci]
