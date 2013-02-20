@@ -15,6 +15,15 @@ Contents:
 .. toctree::
    :maxdepth: 2
 
+utilities
+=========
+
+Utility functions used in the core and scenario modules.
+
+.. automodule:: wspec.utilities
+   :members:
+   
+   
 analytical
 ==========
 

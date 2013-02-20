@@ -58,6 +58,144 @@ cytoplasmic incompatibility (CI) and reinforcement processes.</p>
 </ul>
 </div>
 </div>
+<div class="section" id="utilities">
+<h1>utilities<a class="headerlink" href="#utilities" title="Permalink to this headline">¶</a></h1>
+<p>Utility functions used in the core and scenario modules.</p>
+<span class="target" id="module-wspec.utilities"></span><span class="target" id="module-utilities"></span><dl class="function">
+<dt id="wspec.utilities.diff">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">diff</tt><big>(</big><em>a</em>, <em>b</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#diff"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.diff" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum over absolute differences between two arrays <cite>a</cite> and <cite>b</cite>.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>a, b: ndarrays</dd>
+<dt>Returns:</dt>
+<dd>out: float</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.extend">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">extend</tt><big>(</big><em>arr</em>, <em>dim</em>, <em>pos</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#extend"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.extend" title="Permalink to this definition">¶</a></dt>
+<dd><p>Broadcast array <cite>arr</cite> to new extended dimension <cite>dim</cite>.</p>
+<p>This is achieved by inserting the appropriate number of new axes.
+The original axes of <cite>arr</cite> become positioned at <cite>pos</cite>. Thus, the 
+list <cite>pos</cite> must have length equal to <cite>arr.ndim</cite>.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>arr: ndarray
+dim: int
+pos: int or list of ints</dd>
+<dt>Returns:</dt>
+<dd>out: ndarray</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.get_alleles">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">get_alleles</tt><big>(</big><em>loci</em>, <em>config</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#get_alleles"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.get_alleles" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Args:</dt>
+<dd>loci: list of stings
+config: dict</dd>
+<dt>Returns:</dt>
+<dd>out: nested list of ints</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.list_shape">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">list_shape</tt><big>(</big><em>list2d</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#list_shape"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.list_shape" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return the <cite>shape</cite> of a 2-dimensional nested list.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>list2d: nested list</dd>
+<dt>Returns:</dt>
+<dd>out: shape tuple</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.make_reproduction_allele_names">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">make_reproduction_allele_names</tt><big>(</big><em>axes</em>, <em>config</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#make_reproduction_allele_names"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.make_reproduction_allele_names" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="docutils">
+<dt>Args:</dt>
+<dd>axes: list of strings
+config: dict</dd>
+<dt>Returns:</dt>
+<dd>out: nested list of strings</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.nuclear_inheritance">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">nuclear_inheritance</tt><big>(</big><em>n</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#nuclear_inheritance"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.nuclear_inheritance" title="Permalink to this definition">¶</a></dt>
+<dd><p>Returns an array for the inheritance at a nuclear locus with n alleles.</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.panda_index">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">panda_index</tt><big>(</big><em>labels</em>, <em>names=None</em>, <em>dtype='|S10'</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#panda_index"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.panda_index" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a pandas.MultiIndex with row names contained in the nested 
+list <cite>labels</cite> and column names contained in the optional list 
+<cite>names</cite>.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd>labels: nested list of strings
+names: list of strings</dd>
+<dt>Example usage:</dt>
+<dd><div class="first last highlight-python"><div class="highlight"><pre><span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span> <span class="o">=</span> <span class="p">[[</span><span class="s">&#39;wine&#39;</span><span class="p">,</span><span class="s">&#39;water&#39;</span><span class="p">,</span><span class="s">&#39;beer&#39;</span><span class="p">],</span> <span class="p">[</span><span class="mf">0.2</span><span class="s">&#39;,&#39;</span><span class="mf">0.5</span><span class="s">&#39;], [&#39;</span><span class="n">to</span> <span class="n">go</span><span class="s">&#39;,&#39;</span><span class="k">for</span> <span class="n">here</span><span class="s">&#39;]]</span><span class="gp">&gt;&gt;&gt; </span>
+<span class="n">names</span> <span class="o">=</span> <span class="p">[</span><span class="s">&#39;beverage&#39;</span><span class="p">,</span><span class="s">&#39;size&#39;</span><span class="p">,</span><span class="s">&#39;order&#39;</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">index</span> <span class="o">=</span> <span class="n">make_index</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span><span class="n">names</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">index</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.reproduction_axes">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">reproduction_axes</tt><big>(</big><em>loci, who=['female', 'male', 'offspring']</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#reproduction_axes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.reproduction_axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create a list of reproduction axes names.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>loci: list of strings</dt>
+<dd>names of loci</dd>
+<dt>who: list of strings</dt>
+<dd>Can&#8217;t really think of anything else than the default 
+that would make sense here.</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd>out: list of strings</dd>
+</dl>
+</dd></dl>
+
+<dl class="function">
+<dt id="wspec.utilities.sum_along_axes">
+<tt class="descclassname">wspec.utilities.</tt><tt class="descname">sum_along_axes</tt><big>(</big><em>arr</em>, <em>axes</em><big>)</big><a class="reference internal" href="_modules/wspec/utilities.html#sum_along_axes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#wspec.utilities.sum_along_axes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sum along multiple axes.</p>
+<dl class="docutils">
+<dt>Args:</dt>
+<dd><dl class="first last docutils">
+<dt>arr: ndarray</dt>
+<dd>Input array.</dd>
+<dt>axes: integer or list of integers</dt>
+<dd>Axes along which <cite>arr</cite> is summed.</dd>
+</dl>
+</dd>
+<dt>Returns:</dt>
+<dd><dl class="first last docutils">
+<dt>out: ndarray</dt>
+<dd>Output array. The shape of <cite>out</cite> is identical to the 
+shape of <cite>arr</cite> along <cite>axes</cite>.</dd>
+</dl>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
 <div class="section" id="analytical">
 <h1>analytical<a class="headerlink" href="#analytical" title="Permalink to this headline">¶</a></h1>
 <p>Analytical solutions for stability of cytoplasmic
@@ -1250,6 +1388,7 @@ migration from an infected mainland.</p>
 <li><a class="reference internal" href="#">Welcome to wspec&#8217;s documentation!</a><ul>
 </ul>
 </li>
+<li><a class="reference internal" href="#utilities">utilities</a></li>
 <li><a class="reference internal" href="#analytical">analytical</a></li>
 <li><a class="reference internal" href="#indices-and-tables">Indices and tables</a></li>
 </ul>
