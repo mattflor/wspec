@@ -9,3 +9,6 @@
 
 # temporary and backup files:
 *~
+
+# python stuff:
+*.pyc
