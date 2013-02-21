@@ -14,6 +14,15 @@ Contents:
 
 .. toctree::
    :maxdepth: 2
+   
+core
+====
+
+Core functionality and classes.
+
+.. automodule:: wspec.core
+   :members:
+   
 
 utilities
 =========
