@@ -350,24 +350,24 @@ FREQS = []
 weights = {}           # dictionary for storing simulation
 
 #! Migration
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-mig = np.array([[1-m,       m,      0,      0], \
-                [  m,   1-2*m,      m,      0], \
-                [  0,       m,  1-2*m,      m], \
-                [  0,       0,      m,    1-m]], float)
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                   
 #~ # pop1, pop2, and pop3 are of equal size, pop4 is twice as large:
 #~ mig = np.array([[1-m,       m,      0,      0], \
                 #~ [  m,   1-2*m,      m,      0], \
                 #~ [  0,       m,  1-2*m,      m/2], \
                 #~ [  0,       0,      m,    1-m/2]], float)
-mig_axes = ['target', 'source']
-mig_pdi = panda_index(get_alleles(['population','population'], config=config), mig_axes)
-# extended:
-M_ = extend(mig, 1+N_LOCI, [0,1])
-# for printing:
-M = pd.Series(mig.flatten(), index=mig_pdi, name='migration')
-weights.update( dict(M=M, M_=M_) )
-print '{0}\nName: {1}\nm: {2}'.format( M.unstack([1]), M.name, m)
+mig = np.array([[1-m,       m,      0,      0], \
+                [  m,   1-2*m,      m,      0], \
+                [  0,       m,  1-2*m,      m], \
+                [  0,       0,      m,    1-m]], float)
+M = MigrationWeight(name='migration', \
+                    axes=['target', 'source'], \
+                    config=config, \
+                    arr=mig, \
+                    m=migration_rate
+                    )
+weights['migration'] = M.extended()
+print M
 
 #! Viability selection
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -375,15 +375,14 @@ viab = np.array([[1+s,      1,      1,      1], \
                  [  1,    1+s,      1,      1], \
                  [  1,      1,    1+s,      1], \
                  [  1,      1,      1,    1+s]], float)
-viab_axes = ['population', 'trait']
-viab_idxs = [LOCI.index(a) for a in viab_axes]
-viab_pdi = panda_index(get_alleles(viab_axes, config=config), viab_axes)
-# extended:
-V_ = extend(viab, N_LOCI, viab_idxs)
-# for printing:
-V = pd.Series(viab.flatten(), index=viab_pdi, name='viability selection')
-weights.update( dict(V=V, V_=V_) )
-print '{0}\nName: {1}\ns: {2}'.format( V.unstack([1]), V.name, s)
+V = ViabilityWeight(name='viability selection', \
+                    axes=['population','trait'], \
+                    config=config, \
+                    arr=viab, \
+                    s=selection_coefficient
+                    )
+weights['viability_selection'] = VS.extended()
+print VS
 
 #! Sexual selection (female mating preference)
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -393,16 +392,16 @@ print '{0}\nName: {1}\ns: {2}'.format( V.unstack([1]), V.name, s)
 #! Species recognition (preference for background loci)
 #!----------------------------------------------------------------------
 
-SR = reproduction_weight('species recognition', \
+SR = SpeciesReproductionWeight(name='species recognition', \
                         axes=['population', 'female_recognition', 'male_backA', 'male_backB'], \
-                        unstack_levels=[3], \
                         config=config, \
+                        unstack_levels=[3], \
                         pt=transition_probability, \
                         pr_s1=rejection_probability_species1,
                         pr_s2=rejection_probability_species2
                         )
-SR.set( np.zeros(SR.shape,float) )
 # preferences=[(S allele, index, [[population, preferred A allele, B allele, rejection probability]])]
+preferences = {
 SR.preferences = [('S1', 0, [[i, 0, 0, pr_s1] for i in range(N_POPS)]),    # A1-B1 in  all pops
                   ('S2', 1, [[i, 1, 1, pr_s2] for i in range(N_POPS)])     # A2-B2 in all pops
                  ]
@@ -417,20 +416,19 @@ for s_al, idx, prefs in SR.preferences:
                                                     ALLELES[LOCI.index('backB')][bno], \
                                                     POPULATIONS[pop])
         print pstr.rstrip(', ')
-weights.update( dict(SR=SR) )
+weights['dynamic_reproduction'] = [SR]
 print SR.str_myfloat()
 
 #! Trait preference
 #!----------------------------------------------------------------------
-TP = reproduction_weight('trait preference', \
+TP = ReproductionWeight(name='trait preference', \
                         axes=['population', 'female_preference', 'male_trait'], \
-                        unstack_levels=[2], \
                         config=config, \
+                        unstack_levels=[2], \
                         pt=transition_probability, \
                         pr_t1=rejection_probability_trait1,
                         pr_t2=rejection_probability_trait2
                         )
-TP.set( np.zeros(TP.shape,float) )
 # preferences=[(P allele, index, [[population, preferred trait, rejection probability]])]
 TP.preferences = [('P0', 0, []),                          # no preferences
                   ('P1', 1, [[i, 2, pr_t1] for i in range(N_POPS)]),    # T1 in pop1, T0 in all others
@@ -445,37 +443,37 @@ for p_al, idx, prefs in TP.preferences:
         for pop,trait,prob in prefs:
             pstr += '{0} males in {1}, '.format(ALLELES[LOCI.index('trait')][trait],POPULATIONS[pop])
         print pstr.rstrip(', ')
-weights.update( dict(TP=TP) )
+weights['dynamic_reproduction'].append(TP)
 print TP.str_myfloat()
 
 #! Reproduction
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #! Cytoplasmic incompatibility
 #!----------------------------------------------------------------------
-CI = reproduction_weight('cytoplasmic incompatibility', \
-                         axes=['male_cytotype', 'offspring_cytotype'], \
-                         config=config, \
-                         unstack_levels=[1], \
-                         lCI=ci_level)
+CI = ReproductionWeight(name='cytoplasmic incompatibility', \
+                        axes=['male_cytotype', 'offspring_cytotype'], \
+                        config=config, \
+                        unstack_levels=[1], \
+                        lCI=ci_level
+                        )
 CI.set( np.array([[1,1],[1-ci_level,1]],float) )
 CI_ = CI.extended()
-weights.update( dict(CI=CI, CI_=CI_) )
 print CI
 
 #! Female fecundity
 #!----------------------------------------------------------------------
-F = reproduction_weight('fecundity reduction', \
-                        axes=['female_cytotype'], \
-                        config=config, \
-                        f=fecundity_reduction)
+F = ReproductionWeight(name='fecundity reduction', \
+                       axes=['female_cytotype'], \
+                       config=config, \
+                       f=fecundity_reduction
+                       )
 F.set( np.array([1,1-f],float) )
 F_ = F.extended()
-weights.update( dict(F=F, F_=F_) )
 print F
 
 #! Hybrid male sterility
 #!----------------------------------------------------------------------
-HMS = reproduction_weight('hybrid male sterility', \
+HMS = ReproductionWeight(name='hybrid male sterility', \
                          axes=['male_backA', 'male_backB'], \
                          config=config, \
                          unstack_levels=[1], \
@@ -483,19 +481,18 @@ HMS = reproduction_weight('hybrid male sterility', \
                          )
 HMS.set( np.array( [[1,1-h],[1-h,1]],float ) )
 HMS_ = HMS.extended()
-weights.update( dict(HMS=HMS, HMS_=HMS_) )
 print HMS
 
 #! Cytotype inheritance (Wolbachia transmission)
 #!----------------------------------------------------------------------
-T = reproduction_weight('cytotype inheritance', \
-                        axes=['female_cytotype', 'offspring_cytotype'], \
-                        config=config, \
-                        unstack_levels=[1], \
-                        t=transmission_rate)
+T = ReproductionWeight(name='cytotype inheritance', \
+                       axes=['female_cytotype', 'offspring_cytotype'], \
+                       config=config, \
+                       unstack_levels=[1], \
+                       t=transmission_rate
+                       )
 T.set( np.array([[1,0],[1-t,t]],float) )
 T_ = T.extended()
-weights.update( dict(T=T, T_=T_) )
 print T
 
 #! Nuclear inheritance
@@ -503,71 +500,66 @@ print T
 #! Preference locus
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
-PI = reproduction_weight('preference inheritance', \
-                         axes=['female_preference', 'male_preference', 'offspring_preference'], \
-                         config=config, \
-                         unstack_levels=[2], \
-                         )
+PI = ReproductionWeight(name='preference inheritance', \
+                        axes=['female_preference', 'male_preference', 'offspring_preference'], \
+                        config=config, \
+                        unstack_levels=[2], \
+                        )
 PI.set( nuclear_inheritance(3) )
 PI_ = PI.extended()
-weights.update( dict(PI=PI, PI_=PI_) )
 print PI
 
 #! Trait locus
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
-TI = reproduction_weight('trait inheritance', \
-                         axes=['female_trait', 'male_trait', 'offspring_trait'], \
-                         config=config, \
-                         unstack_levels=[2], \
-                         )
+TI = ReproductionWeight(name='trait inheritance', \
+                        axes=['female_trait', 'male_trait', 'offspring_trait'], \
+                        config=config, \
+                        unstack_levels=[2], \
+                        )
 TI.set( nuclear_inheritance(4) )
 TI_ = TI.extended()
-weights.update( dict(TI=TI, TI_=TI_) )
 print TI
 
 #! Background locus A
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
-AI = reproduction_weight('background A inheritance', \
-                         axes=['female_backA', 'male_backA', 'offspring_backA'], \
-                         config=config, \
-                         unstack_levels=[2], \
-                         )
+AI = ReproductionWeight(name='background A inheritance', \
+                        axes=['female_backA', 'male_backA', 'offspring_backA'], \
+                        config=config, \
+                        unstack_levels=[2], \
+                        )
 AI.set( nuclear_inheritance(2) )
 AI_ = AI.extended()
-weights.update( dict(AI=AI, AI_=AI_) )
 print AI
 
 #! Background locus B
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
-BI = reproduction_weight('background B inheritance', \
-                         axes=['female_backB', 'male_backB', 'offspring_backB'], \
-                         config=config, \
-                         unstack_levels=[2], \
-                         )
+BI = ReproductionWeight(name='background B inheritance', \
+                        axes=['female_backB', 'male_backB', 'offspring_backB'], \
+                        config=config, \
+                        unstack_levels=[2], \
+                        )
 BI.set( nuclear_inheritance(2) )
 BI_ = BI.extended()
-weights.update( dict(BI=BI, BI_=BI_) )
 print BI
 
 #! Species recognition locus
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
-SI = reproduction_weight('species recognition inheritance', \
-                         axes=['female_recognition', 'male_recognition', 'offspring_recognition'], \
-                         config=config, \
-                         unstack_levels=[2], \
-                         )
+SI = ReproductionWeight(name='species recognition inheritance', \
+                        axes=['female_recognition', 'male_recognition', 'offspring_recognition'], \
+                        config=config, \
+                        unstack_levels=[2], \
+                        )
 SI.set( nuclear_inheritance(2) )
 SI_ = SI.extended()
-weights.update( dict(SI=SI, SI_=SI_) )
 print SI
 
 # we can combine all reproduction weights that are not frequency-dependent:
 R_ = CI_ * F_ * T_ * PI_ * TI_ * AI_ * BI_ * SI_ * HMS_
-weights.update( dict(R_=R_) )
+weights['constant_reproduction'] = R_
 
 random_frequencies = npr.random(FSHAPE)
 metapop = metapopulation(random_frequencies, config=config, generation=0, name='metapopulation')
