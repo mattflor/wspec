@@ -124,9 +124,9 @@ class MyPrettyPrinter(PrettyPrinter):
 
 def make_allele_dictionary(loci, alleles):
     adict = {}    # dictionary for allele name to index conversion
-    for i,locus in enumerate(alleles[1:]):
+    for i,locus in enumerate(alleles):
         for allele in locus:
-            adict[allele] = (i+1,locus.index(allele))
+            adict[allele] = (i,locus.index(allele))
     return adict
 
 def reproduction_axes(loci, who=['female','male','offspring']):
