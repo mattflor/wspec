@@ -16,10 +16,9 @@ class Weight(object):
     
     Not usable on its own because no panda respresentation is created.
     """
-    def __init__(self, name, axes, config, arr=None, unstack_levels=-1, **parameters):
+    def __init__(self, name, axes, arr=None, unstack_levels=-1, **parameters):
         self.name = name
         self.axes = axes
-        self.config = config
         self.array = arr
         self.unstack_levels = unstack_levels
         self.parameters = parameters
@@ -96,7 +95,7 @@ class MigrationWeight(Weight):
                  arr=None, \
                  unstack_levels=-1, \
                  **parameters):
-        Weight.__init__(self, name, axes, config, arr, unstack_levels, **parameters)
+        Weight.__init__(self, name, axes, arr, unstack_levels, **parameters)
         labels = get_alleles(['population','population'], config=config)
         self.shape = list_shape(labels)
         if arr == None:
@@ -113,7 +112,7 @@ class ViabilityWeight(Weight):
                  arr=None, \
                  unstack_levels=-1, \
                  **parameters):
-        Weight.__init__(self, name, axes, config, arr, unstack_levels, **parameters)
+        Weight.__init__(self, name, axes, arr, unstack_levels, **parameters)
         labels = get_alleles(axes, config=config)
         self.shape = list_shape(labels)
         if arr == None:
@@ -122,13 +121,6 @@ class ViabilityWeight(Weight):
         self.make_panda(labels)
         pos = [config['LOCI'].index(a) for a in axes]
         self.configure_extension( dim=config['N_LOCI'], pos=pos )
-    
-viab_idxs = [LOCI.index(a) for a in viab_axes]
-viab_pdi = panda_index(get_alleles(viab_axes, config=config), viab_axes)
-# extended:
-V_ = extend(viab, N_LOCI, viab_idxs)
-# for printing:
-V = pd.Series(viab.flatten(), index=viab_pdi, name='viability selection')
 
 class ReproductionWeight(Weight):
     """
@@ -164,7 +156,7 @@ class ReproductionWeight(Weight):
             parameters: dict
                 dictionary of parameter names (keys) and values (values)
         """
-        Weight.__init__(self, name, axes, config, arr, unstack_levels, **parameters)
+        Weight.__init__(self, name, axes, arr, unstack_levels, **parameters)
         labels = make_reproduction_allele_names(axes, config)
         self.shape = list_shape( labels )
         if arr == None:
