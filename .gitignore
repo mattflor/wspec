@@ -12,3 +12,6 @@
 
 # python stuff:
 *.pyc
+
+# storage related (don't include hdf5 files):
+*.h5
