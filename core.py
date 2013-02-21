@@ -10,7 +10,127 @@ import numpy as np
 import panda as pd
 from utilities import *
 
-class ReproductionWeight(object):
+class Weight(object):
+    """
+    Weight base class.
+    
+    Not usable on its own because no panda respresentation is created.
+    """
+    def __init__(self, name, axes, config, arr=None, unstack_levels=-1, **parameters):
+        self.name = name
+        self.axes = axes
+        self.config = config
+        self.array = arr
+        self.unstack_levels = unstack_levels
+        self.parameters = parameters
+        self.__dict__.update(parameters)
+    
+    def make_panda(self, labels):
+        pd_idx = panda_index(labels, self.axes)
+        self.panda = pd.Series(self.array.flatten(), index=pd_idx, name=self.name)
+    
+    def configure_extension(self, dim, pos):
+        self.extdim = dim
+        self.extpos = pos
+        
+    def set(self, arr):
+        """
+        Set weight array to `arr` and update panda representation.
+        """
+        assert np.shape(arr) == self.shape
+        self.array = arr
+        self.panda.data = arr
+    
+    def set_to_ones(self):
+        self.array = np.ones(self.shape,float)
+    
+    def isuptodate(self):
+        """
+        Return True if panda representation is up to date.
+        """
+        return np.all( self.array.flatten() == self.panda.values )
+        
+    def update(self):
+        """
+        Update panda representation.
+        """
+        self.panda.data = self.array
+    
+    def extended(self):
+        return extend(self.array, self.extdim, self.extpos)
+        
+    def __str__(self):
+        """
+        Nicely formatted string output of the reproduction weight. We 
+        just use the panda Series output.
+        """
+        if not self.isuptodate():
+            self.update()
+        if self.unstack_levels:
+            s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels), self.name )
+        else:
+            s = str(self.panda) + '\n'
+        pars = ''
+        for k,v in self.parameters.items():
+          pars += '{0}: {1}\n'.format(k,v)
+        return s + pars.rstrip()
+    
+    def str_myfloat(self):
+        if not self.isuptodate():
+            self.update()
+        if self.unstack_levels:
+            s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels).to_string(float_format=myfloat), self.name )
+        else:
+            s = '{0}\n'.format( self.panda.to_string(float_format=myfloat) )
+        pars = ''
+        for k,v in self.parameters.items():
+          pars += '{0}: {1}\n'.format(k,v)
+        return s + pars.rstrip()
+    
+
+class MigrationWeight(Weight):
+    def __init__(self, \
+                 name='migration', \
+                 axes=['target', 'source'], \
+                 config=None, \
+                 arr=None, \
+                 unstack_levels=-1, \
+                 **parameters):
+        Weight.__init__(self, name, axes, config, arr, unstack_levels, **parameters)
+        labels = get_alleles(['population','population'], config=config)
+        self.shape = list_shape(labels)
+        if arr == None:
+            arr = np.zeros( self.shape, float )
+        self.array = arr
+        self.make_panda(labels)
+        self.configure_extension( dim=1+config['N_LOCI'], pos=[0,1] )
+
+class ViabilityWeight(Weight):
+    def __init__(self, \
+                 name='viability selection', \
+                 axes=['population', 'trait'], \
+                 config=None, \
+                 arr=None, \
+                 unstack_levels=-1, \
+                 **parameters):
+        Weight.__init__(self, name, axes, config, arr, unstack_levels, **parameters)
+        labels = get_alleles(axes, config=config)
+        self.shape = list_shape(labels)
+        if arr == None:
+            arr = np.zeros( self.shape, float )
+        self.array = arr
+        self.make_panda(labels)
+        pos = [config['LOCI'].index(a) for a in axes]
+        self.configure_extension( dim=config['N_LOCI'], pos=pos )
+    
+viab_idxs = [LOCI.index(a) for a in viab_axes]
+viab_pdi = panda_index(get_alleles(viab_axes, config=config), viab_axes)
+# extended:
+V_ = extend(viab, N_LOCI, viab_idxs)
+# for printing:
+V = pd.Series(viab.flatten(), index=viab_pdi, name='viability selection')
+
+class ReproductionWeight(Weight):
     """
     Weights to be used in the reproduction step of next generation
     production.
@@ -44,84 +164,24 @@ class ReproductionWeight(object):
             parameters: dict
                 dictionary of parameter names (keys) and values (values)
         """
-        self.name = name
-        self.axes = axes
-        self.repro_dim = config['REPRO_DIM']
-        self.repro_axes = config['REPRO_AXES']
-        self.unstack_levels = unstack_levels
-        self.parameters = parameters
-        self.__dict__.update(parameters)
-        self.idxs = [self.repro_axes.index(ax) for ax in axes]
-        self.alleles = make_reproduction_allele_names(axes, config)
-        self.shape = list_shape( self.alleles )
-        self.pd_idx = panda_index( self.alleles, axes )
-        if not arr:
-            arr = np.zeros( self.shape )
-        self.panda = pd.Series(arr.flatten(), index=self.pd_idx, name=self.name)
-    
-    def set(self, arr):
-        """
-        Set weight array to `arr` and update panda representation.
-        """
-        assert np.shape(arr) == self.shape
+        Weight.__init__(self, name, axes, config, arr, unstack_levels, **parameters)
+        labels = make_reproduction_allele_names(axes, config)
+        self.shape = list_shape( labels )
+        if arr == None:
+            arr = np.zeros( self.shape, float )
         self.array = arr
-        self.panda.data = arr
-    
-    def isuptodate(self):
-        """
-        Return True if panda representation is up to date.
-        """
-        return np.all( self.array.flatten() == self.panda.values )
-        
-    def _update(self):
-        """
-        Update panda representation.
-        """
-        self.panda.data = self.array
-    
-    def extended(self):
-        """
-        Extend weight array dimensions to the correct dimensions for
-        the reproduction step.
-        """
-        return extend(self.array, self.repro_dim, self.idxs)
-    
-    def set_to_ones(self):
-        self.array = np.ones(self.shape,float)
+        self.make_panda(labels)
+        dim = config['REPRO_DIM']
+        repro_axes = config['REPRO_AXES']
+        pos = [repro_axes.index(ax) for ax in axes]
+        self.configure_extension( dim=dim, pos=pos )
     
     def dynamic(self, arr):
         """
         This method must be overloaded with custom specifics.
         """
         pass
-    
-    def __str__(self):
-        """
-        Nicely formatted string output of the reproduction weight. We 
-        just use the panda Series output.
-        """
-        if not self.isuptodate():
-            self._update()
-        if self.unstack_levels:
-            s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels), self.name )
-        else:
-            s = str(self.panda) + '\n'
-        pars = ''
-        for k,v in self.parameters.items():
-          pars += '{0}: {1}\n'.format(k,v)
-        return s + pars.rstrip()
-    
-    def str_myfloat(self):
-        if not self.isuptodate():
-            self._update()
-        if self.unstack_levels:
-            s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels).to_string(float_format=myfloat), self.name )
-        else:
-            s = '{0}\n'.format( self.panda.to_string(float_format=myfloat) )
-        pars = ''
-        for k,v in self.parameters.items():
-          pars += '{0}: {1}\n'.format(k,v)
-        return s + pars.rstrip()
+
 
 class Metapopulation(object):
     def __init__(self, frequencies, config, generation=0, name='metapopulation', eq='undetermined'):
@@ -154,6 +214,10 @@ class Metapopulation(object):
         self.offspring_idxs = [self.repro_axes.index(a) for a in self.offspring_axes]
     
     def __str__(self):
+        """
+        Returns nicely formatted string representation of metapopulation 
+        as unstacked panda series.
+        """
         if not self.isuptodate():
             self.update()
         s = "{0}\nName: {1}\nGeneration: {2}\nEQ: {3}".format( \
@@ -164,6 +228,9 @@ class Metapopulation(object):
         return s
     
     def overview(self):
+        """
+        Return nicely formatted string representation of locus sums.
+        """
         s = str(self.get_sums_pd([1,2]).unstack(2)) + '\n'
         s += 'Name: background loci\n\n'
         for loc in self.loci[3:]:
@@ -172,13 +239,23 @@ class Metapopulation(object):
         return s
     
     def normalize(self):
+        """
+        Normalize frequencies so that they sum up to one in each 
+        population.
+        """
         s = sum_along_axes(self.freqs, 0)          # first axis are `populations`
         self.freqs /= extend(s, self.ndim, 0)      # in-place, no copy
     
     def isuptodate(self):
+        """
+        Return True if panda representation is up to date.
+        """
         return np.all(self.panda.values == self.freqs.flatten())
     
     def update(self):
+        """
+        Update panda representation.
+        """
         self.panda.data = self.freqs.flatten()
     
     def store_freqs(self, filename='freqs.npy'):
@@ -195,11 +272,36 @@ class Metapopulation(object):
         self.freqs = frequencies[str(generation)]
     
     def get_sum(self, allele, pop):
+        """
+        Return the summed frequency of `allele` in `pop`.
+        
+        Args:
+            allele: string
+                allele name
+            pop: int or string
+                population index or name
+        
+        Returns:
+            out: float
+        """
         if not isinstance(pop,int): pop = self.populations.index(pop)
         l,a = self._allele_idxs[allele]
         return sum_along_axes(self.freqs, [0,l])[pop,a]
 
     def get_sums(self, locus, pop=None):
+        """
+        Return the summed frequency at `locus` (in `pop` if given, or
+        in all populations).
+        
+        Args:
+            locus: int or string or list of these
+                locus indexes or names
+            pop: int or string
+                population index or name
+        
+        Returns:
+            out: ndarray
+        """
         level = [0]
         if not isinstance(locus, list):
             locus = [locus]
@@ -215,6 +317,19 @@ class Metapopulation(object):
         return sum_along_axes(self.freqs, level)
     
     def get_sums_pd(self, locus, pop=None):
+        """
+        Return the summed frequency at `locus` (in `pop` if given, or
+        in all populations) as a panda series for nice print output.
+        
+        Args:
+            locus: int or string or list of these
+                locus indexes or names
+            pop: int or string
+                population index or name
+        
+        Returns:
+            out: ndarray
+        """
         if not self.isuptodate():
             self.update()
         level = [0]
@@ -232,9 +347,21 @@ class Metapopulation(object):
     
     def introduce_allele(self, pop, allele, intro_freq, advance_generation_count=True):
         """
-        `pop` : population index or name
-        `allele` : allele name
-        `intro_freq` : introduction frequency of `allele`
+        Introduce `allele` into `pop` with frequency `intro_freq`.
+        
+        The introduction is a way such that the summed frequencies of
+        at all other loci are unaffected by the new allele. The allele 
+        must not be present in the population already.
+        If advance_generation_count is True, the generation of the 
+        metapopulation is advanced by one.
+        
+        Args:
+            pop: int or string
+                population index or name
+            allele: string
+                allele name
+            intro_freq: float in interval [0, 1]
+                introduction frequency of `allele`
         """
         if not isinstance(pop,int):
             pop = self.populations.index(pop)
@@ -257,28 +384,42 @@ class Metapopulation(object):
     def run(self, weights, n=1000, step=100, threshold=1e-4, chart=None):
         """
         Simulate next `n` generations. Abort if average overall difference 
-        between consecutive generations is smaller than `threshold`.
-        `step` is used for plotting only.
-        
+        between consecutive generations is smaller than `threshold` (i.e.
+        an equilibrium has been reached).
+                
         Args:
             weights: iterable of weights to be used in the calculation
                      of the next generation frequencies
-        
-        To enable live stripcharting, pass a stripchart instance to `chart`.
+            n: int
+                maximum number of generations to run
+            step: int
+                frequencies are stored every `step` generations
+            threshold: float
+                the `threshold` is divided by the frequency size 
+                (arr.ndim) to calculate `thresh`, and the simulation run
+                is stopped if the average difference between consecutive
+                generations has become smaller than `thresh`.
+            chart: visualization.stripchart instance
+                if provided, live stripcharting is enabled
         """
         M_, V_, R_, SR, TP = weights
         global SR, TP
         self.chart = chart
         n += self.generation
-        thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh`
+        thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
+        
+        # this part may be customized ##################################
         pt = SR.pt
         species_preferences = [(sno,prefs) for pname,sno,prefs in SR.preferences]
         trait_preferences = [(pno,prefs) for pname,pno,prefs in TP.preferences]
+        ################################################################
+        
         still_changing = True
         while still_changing and self.generation < n:
             previous = np.copy(self.freqs)
+            
             ### migration ##################################
-            self.freqs = np.sum(self.freqs[np.newaxis,...] * M_, 1)   # sum over source axis
+            self.freqs = np.sum(self.freqs[np.newaxis,...] * M_, 1)   # sum over `source` axis
             self.normalize()
             
             ### viability selection ########################
