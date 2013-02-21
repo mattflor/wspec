@@ -1,9 +1,49 @@
+"""
+.. module:: core
+   :platform: Unix
+   :synopsis: Core functionality and classes
+
+.. moduleauthor:: Matthias Flor <matthias.c.flor@gmail.com>
+
+"""
 import numpy as np
 import panda as pd
 from utilities import *
 
 class ReproductionWeight(object):
-    def __init__(self, name, axes, config, unstack_levels=[], **parameters):
+    """
+    Weights to be used in the reproduction step of next generation
+    production.
+    
+    Mainly, this class takes care of
+    - printing a nice panda version of the weight array and
+    - enabling autmatic extension to the correct shape needed in the 
+      reproduction step.
+    
+    Constant weights can be instantiated directly as instances of this
+    class whereas dynamic weights should be defined in the scenario 
+    files as custom classes inheriting from this class.
+    The class method `dynamic` should be used to achieve a dynamic 
+    update of the weight array.
+    """
+    def __init__(self, name, axes, config, arr=None, unstack_levels=[], **parameters):
+        """
+        Args:
+            name: str
+                name of the weight
+            axes: list of strings
+                list of axes names
+            config: dict
+                scenario configuration
+            arr: ndarray
+                if `arr` is not provided on initialization, it will be
+                populated with zeros and **must** be set afterwords with
+                the `set` method
+            unstack_levels: int, string, or list of these
+                level(s) to unstack panda Series
+            parameters: dict
+                dictionary of parameter names (keys) and values (values)
+        """
         self.name = name
         self.axes = axes
         self.repro_dim = config['REPRO_DIM']
@@ -13,23 +53,30 @@ class ReproductionWeight(object):
         self.__dict__.update(parameters)
         self.idxs = [self.repro_axes.index(ax) for ax in axes]
         self.alleles = make_reproduction_allele_names(axes, config)
-        self.pd_idx = panda_index( self.alleles, axes )
         self.shape = list_shape( self.alleles )
+        self.pd_idx = panda_index( self.alleles, axes )
+        if not arr:
+            arr = np.zeros( self.shape )
+        self.panda = pd.Series(arr.flatten(), index=self.pd_idx, name=self.name)
     
     def set(self, arr):
+        """
+        Set weight array to `arr` and update panda representation.
+        """
         assert np.shape(arr) == self.shape
         self.array = arr
-        self.panda = pd.Series(self.array.flatten(), index=self.pd_idx, name=self.name)
-        
-    def update(self, arr=None):
+        self.panda.data = arr
+    
+    def isuptodate(self):
         """
-        Set weight array to `arr`.
-        
-        Args:
-            arr: numpy array
+        Return True if panda representation is up to date.
         """
-        assert self.shape == arr.shape
-        self.array = arr
+        return np.all( self.array.flatten() == self.panda.values )
+        
+    def _update(self):
+        """
+        Update panda representation.
+        """
         self.panda.data = self.array
     
     def extended(self):
@@ -49,6 +96,12 @@ class ReproductionWeight(object):
         pass
     
     def __str__(self):
+        """
+        Nicely formatted string output of the reproduction weight. We 
+        just use the panda Series output.
+        """
+        if not self.isuptodate():
+            self._update()
         if self.unstack_levels:
             s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels), self.name )
         else:
@@ -59,6 +112,8 @@ class ReproductionWeight(object):
         return s + pars.rstrip()
     
     def str_myfloat(self):
+        if not self.isuptodate():
+            self._update()
         if self.unstack_levels:
             s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels).to_string(float_format=myfloat), self.name )
         else:
