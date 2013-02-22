@@ -42,6 +42,8 @@ def extend(arr, dim, pos):
     Returns:
         out: ndarray
     """
+    if isinstance(arr, float):
+        return arr
     indexer = [np.newaxis] * dim
     if isinstance(pos,int): pos = [pos]       # enable passing of a single int posistion
     for p in pos:
