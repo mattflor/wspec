@@ -7,9 +7,11 @@
 
 """
 import numpy as np
-import panda as pd
+import pandas as pd
 import utilities as utils
 extend = utils.extend
+sum_along_axes = utils.sum_along_axes
+import pdb
 
 class Weight(object):
     """
@@ -187,15 +189,19 @@ class PreferenceWeight(ReproductionWeight):
         self.pref_desc = pref_desc
         preferences = []
         for pref_allele,pop_prefs in sorted(pref_desc.items()):
-            prefidx = config['ADICT'][pref_allele][1]   # retrieve allele indexes
+            prefidx = config['ADICT'][pref_allele][1]   # retrieve allele indexe
             for pop,(cues,pr) in sorted(pop_prefs.items()):
-                popidx = config['ADICT'][pop][1]
+                if pop == 'all pops':   # same preference in all populations
+                    popidx = slice(None,None,None)
+                else:
+                    popidx = config['ADICT'][pop][1]
                 cues = cues.split('-')
-                cueidx = [ config['ADICT'][c][1] for c in cues ]   # get cue allele indexes
-                preferences.append( ([popidx]+[prefidx]+cueidx, pr) ) # tuple of all indexes together and the rejection probability
+                cueidx = tuple( [config['ADICT'][c][1] for c in cues] )   # get cue allele indexes
+                preferences.append( ((popidx,prefidx)+cueidx, pr) ) # tuple of all indexes together (as a tuple) and the rejection probability
         self.preferences = preferences
+        print "init {0}: {1}".format(self.name, preferences)
     
-    def calculate(self, x, pt):
+    def calculate(self, x):
         """
         Args:
             x: ndarray
@@ -205,9 +211,11 @@ class PreferenceWeight(ReproductionWeight):
         """
         self.set_to_ones()
         for idx,pr in self.preferences:         # idx: complete indexes
-            idx2 = (idx[0],) + idx[3:]          # idx2: preference allele index removed
-            tmp = 1./(1-pr*pt*(1-x[idx2]))      
-            self.array[idx[:2]] *= (1-pr)*tmp   # idx[:2]: preferred trait indexes removed
+            #~ pdb.set_trace()
+            idx2 = idx[:1] + idx[2:]          # idx2: preference allele index removed
+            tmp = 1./(1-pr*self.pt*(1-x[idx2]))
+            tmp_ = extend(tmp, dim=len(idx2), pos=0)  #  tmp[:,np.newaxis,np.newaxis] 
+            self.array[idx[:2]] *= (1-pr)*tmp_   # idx[:2]: preferred trait indexes removed
             self.array[idx] = tmp
         self.array = np.nan_to_num(self.array)
         
@@ -221,35 +229,44 @@ class PreferenceWeight(ReproductionWeight):
         #~ self.array = np.nan_to_num(self.array)
 
 
-class Metapopulation(object):
+class MetaPopulation(object):
     def __init__(self, frequencies, config, generation=0, name='metapopulation', eq='undetermined'):
         self.loci = config['LOCI']
         self.n_loci = len(self.loci)
         self.alleles = config['ALLELES']
-        self.repro_axes = config['REPRO_AXES']  # reproduction_axes(loci)
-        self.repro_dim = config['REPRO_DIM']    #len(self.repro_axes)
+        #~ self.repro_axes = config['REPRO_AXES']  # reproduction_axes(loci)
+        #~ self.repro_dim = config['REPRO_DIM']    #len(self.repro_axes)
         assert np.shape(frequencies) == utils.list_shape(self.alleles)
         self.freqs = frequencies
         self.ndim = self.freqs.ndim
         self.shape = self.freqs.shape
         self.size = self.freqs.size
         self.normalize()
-        self._allele_idxs = utils.make_allele_dictionary(self.loci, self.alleles)
-        self.labels = utils.panda_index(self.alleles, self.loci)
+        self.allele_idxs = config['ADICT']
         self.populations = self.alleles[0]
         self.n_pops = len(self.populations)
         self.generation = generation
         self.name = name
         self.eq = eq
-        self.panda = pd.Series(self.freqs.flatten(), index=self.labels, name=name)
+        labels = utils.panda_index(self.alleles, self.loci)
+        self.panda = pd.Series(self.freqs.flatten(), index=labels, name=name)
         self.livechart = False
         
-        self.male_axes = utils.reproduction_axes(self.loci, 'male')
-        self.male_idxs = [self.repro_axes.index(a) for a in self.male_axes]
-        self.female_axes = utils.reproduction_axes(self.loci, 'female')
-        self.female_idxs = [self.repro_axes.index(a) for a in self.female_axes]
-        self.offspring_axes = utils.reproduction_axes(self.loci, 'offspring')
-        self.offspring_idxs = [self.repro_axes.index(a) for a in self.offspring_axes]
+        r_axes = config['REPRO_AXES']
+        self.repro_axes = {'all': r_axes}
+        self.repro_dim = config['REPRO_DIM']
+        self.repro_idxs = {}
+        for who in ['female', 'male', 'offspring']:
+            w_axes = utils.reproduction_axes(self.loci, who)
+            self.repro_axes[who] = w_axes
+            self.repro_idxs[who] = [r_axes.index(a) for a in w_axes]
+            
+        #~ self.male_axes = utils.reproduction_axes(self.loci, 'male')
+        #~ self.male_idxs = [self.repro_axes.index(a) for a in self.male_axes]
+        #~ self.female_axes = utils.reproduction_axes(self.loci, 'female')
+        #~ self.female_idxs = [self.repro_axes.index(a) for a in self.female_axes]
+        #~ self.offspring_axes = utils.reproduction_axes(self.loci, 'offspring')
+        #~ self.offspring_idxs = [self.repro_axes.index(a) for a in self.offspring_axes]
     
     def __str__(self):
         """
@@ -259,7 +276,7 @@ class Metapopulation(object):
         if not self.isuptodate():
             self.update()
         s = "{0}\nName: {1}\nGeneration: {2}\nEQ: {3}".format( \
-                self.panda.unstack([0,-1]).to_string(float_format=myfloat), \
+                self.panda.unstack([0,-1]).to_string(float_format=utils.myfloat), \
                 self.name, \
                 self.generation, \
                 self.eq )
@@ -281,7 +298,7 @@ class Metapopulation(object):
         Normalize frequencies so that they sum up to one in each 
         population.
         """
-        s = utils.sum_along_axes(self.freqs, 0)          # first axis are `populations`
+        s = sum_along_axes(self.freqs, 0)          # first axis are `populations`
         self.freqs /= extend(s, self.ndim, 0)      # in-place, no copy
     
     def isuptodate(self):
@@ -322,9 +339,9 @@ class Metapopulation(object):
         Returns:
             out: float
         """
-        if not isinstance(pop,int): pop = self.populations.index(pop)
-        l,a = self._allele_idxs[allele]
-        return utils.sum_along_axes(self.freqs, [0,l])[pop,a]
+        if not isinstance(pop,int): pop = self.allele_idxs(pop)[1]
+        l,a = self.allele_idxs[allele]
+        return sum_along_axes(self.freqs, [0,l])[pop,a]
 
     def get_sums(self, locus, pop=None):
         """
@@ -348,11 +365,11 @@ class Metapopulation(object):
             else: level.append( self.loci.index(loc) )
         if pop or pop==0:
             if not isinstance(pop,int):
-                popname, pop = pop, self.populations.index(pop)
+                popname, pop = pop, self.allele_idxs(pop)[1]
             else:
                 popname = self.populations[pop]
-            return utils.sum_along_axes(self.freqs, level)[pop]
-        return utils.sum_along_axes(self.freqs, level)
+            return sum_along_axes(self.freqs, level)[pop]
+        return sum_along_axes(self.freqs, level)
     
     def get_sums_pd(self, locus, pop=None):
         """
@@ -402,9 +419,9 @@ class Metapopulation(object):
                 introduction frequency of `allele`
         """
         if not isinstance(pop,int):
-            pop = self.populations.index(pop)
-        loc,al = self._allele_idxs[allele]
-        lfreqs = utils.sum_along_axes(self.freqs, [0,loc])[pop]
+            pop = self.allele_idxs[pop][1]
+        loc,al = self.allele_idxs[allele]
+        lfreqs = sum_along_axes(self.freqs, [0,loc])[pop]
         try:
             assert lfreqs[al] == 0.
         except AssertionError:
@@ -419,7 +436,7 @@ class Metapopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, weights, n=1000, step=100, threshold=1e-4, chart=None):
+    def run(self, n, weights, step=100, threshold=1e-4, chart=None):
         """
         Simulate next `n` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
@@ -444,17 +461,12 @@ class Metapopulation(object):
         VS = weights['viability_selection']
         R = weights['constant_reproduction']
         SR,TP = weights['dynamic_reproduction']
-
+        pt = SR.pt
+        
         self.chart = chart
         n += self.generation
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
-        
-        # this part may be customized ##################################
-        pt = SR.pt
-        species_preferences = [(sno,prefs) for pname,sno,prefs in SR.preferences]
-        trait_preferences = [(pno,prefs) for pname,pno,prefs in TP.preferences]
-        ################################################################
-        
+
         still_changing = True
         while still_changing and self.generation < n:
             previous = np.copy(self.freqs)
@@ -469,54 +481,31 @@ class Metapopulation(object):
             
             ### reproduction ###############################
             # species recognition:
-            ABfreqs = self.get_sums(['backA','backB'])
-            SR.calculate( ABfreqs )
-            
-            #~ for sno, prefs in species_preferences:
-                #~ for pop, ano, bno, pr in prefs:
-                    #~ R = 1./(1-pr*pt*(1-ABfreqs[pop,ano,bno]))
-                    #~ SR.array[pop,sno] *= (1-pr)*R
-                    #~ SR.array[pop,sno,ano,bno] = R
-            #~ SR.array = np.nan_to_num(SR.array)
-            #~ SR_ = SR.extended()
-            
-            TP.update(self.get_sums('trait'))
+            SR.calculate( self.get_sums(['backA','backB']) )
             
             # trait preferences:
-            TP.set_to_ones()
-            traitfreqs = self.get_sums('trait')
-            for pno, prefs in trait_preferences:
-                for pop, tno, pr in prefs:
-                    R = 1./(1-pr*pt*(1-traitfreqs[pop,tno]))
-                    TP.array[pop,pno] *= (1-pr)*R
-                    TP.array[pop,pno,tno] = R
-            TP.array = np.nan_to_num(TP.array)           # replace NaN with zero (happens when pr=pt=1 and x=0)
-            TP_ = TP.extended()
-            
-            TP.update(self.get_sums('trait'))
-            TP_ = TP.extended()
+            TP.calculate( self.get_sums('trait') )
             
             # offspring production:
-            females = extend( self.freqs, REPRO_DIM, self.female_idxs )
-            males = extend( self.freqs, REPRO_DIM, self.male_idxs )
-            offspring = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.offspring_idxs )
-            self.freqs = offspring
+            females = extend( self.freqs, self.repro_dim, self.repro_idxs['female'] )
+            males = extend( self.freqs, self.repro_dim, self.repro_idxs['male'] )
+            self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
             self.normalize()
             
-            if self.generation % step == 0:
-                GENS.append(self.generation)
-                FREQS.append(self.freqs)
-                allele_freqs = []
-                for i,pop in enumerate(self.populations):
-                    allele_freqs.append([])
-                    for al in chartlabels[pop]:
-                        allele_freqs[i].append( self.get_sum(al, pop) )
-                update_plot_data(self.generation, allele_freqs)
-                if self.chart:
-                    self.chart.update()
+            #~ if self.generation % step == 0:
+                #~ GENS.append(self.generation)
+                #~ FREQS.append(self.freqs)
+                #~ allele_freqs = []
+                #~ for i,pop in enumerate(self.populations):
+                    #~ allele_freqs.append([])
+                    #~ for al in chartlabels[pop]:
+                        #~ allele_freqs[i].append( self.get_sum(al, pop) )
+                #~ update_plot_data(self.generation, allele_freqs)
+                #~ if self.chart:
+                    #~ self.chart.update()
             
             self.generation += 1
-            still_changing = diff(self.freqs, previous) > thresh
+            still_changing = utils.diff(self.freqs, previous) > thresh
   
         self.eq = not still_changing
         if self.chart:
