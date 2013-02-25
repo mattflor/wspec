@@ -436,7 +436,7 @@ class MetaPopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, n, weights, step=100, threshold=1e-4, chart=None):
+    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, chart=None):
         """
         Simulate next `n` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
@@ -466,7 +466,11 @@ class MetaPopulation(object):
         self.chart = chart
         n += self.generation
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
-
+        
+        if runstore != None:
+            gstore = runstore['generations']
+            fstore = runstore['frequencies']
+            count  = runstore['count']
         still_changing = True
         while still_changing and self.generation < n:
             previous = np.copy(self.freqs)
@@ -492,6 +496,11 @@ class MetaPopulation(object):
             self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
             self.normalize()
             
+            if self.generation % step == 0:
+                c = count[()]
+                gstore[c] = self.generation
+                fstore[c] = self.freqs
+                count[()] += 1
             #~ if self.generation % step == 0:
                 #~ GENS.append(self.generation)
                 #~ FREQS.append(self.freqs)

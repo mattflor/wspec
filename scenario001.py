@@ -566,7 +566,7 @@ frequencies['0'] = startfreqs
 
 #! Migration-selection equilibrium
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=1e-4, step=10)
+metapop.run(n, weights, threshold=1e-4, step=10, runstore=r)
 print metapop
 frequencies[str(metapop.generation)] = metapop.freqs
 
@@ -581,7 +581,7 @@ frequencies[str(metapop.generation)] = metapop.freqs
 
 #! Equilibrium
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=1e-4, step=10)
+metapop.run(n, weights, threshold=1e-4, step=10, runstore=r)
 print metapop
 frequencies[str(metapop.generation)] = metapop.freqs
 #~ GENS.append(metapop.generation)
@@ -598,7 +598,7 @@ frequencies[str(metapop.generation)] = metapop.freqs
 
 #! Final state
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=1e-4, step=10)
+metapop.run(n, weights, threshold=1e-4, step=10, runstore=r)
 print metapop
 frequencies[str(metapop.generation)] = metapop.freqs
 #~ GENS.append(metapop.generation)
