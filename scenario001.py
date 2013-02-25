@@ -7,6 +7,7 @@ from pylab import show          # pyreport needs this to find figures
 
 import core, storage, visualization
 import utilities as utils
+reload(core)
 
 
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
@@ -289,17 +290,20 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
-rstore = storage.runstore('/extra/flor/data/simdata.h5')
+#~ rstore = storage.runstore('/extra/flor/data/simdata.h5')
+rstore = storage.Runstore('/storage/simdata/simdata.h5')
 snum = 1
 rnum = 1
+#~ rstore.select_scenario(snum)
+#~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum)
 except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
 try: rstore.remove_run(rnum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE)
 
-n = 10000
-step = 10
+n = 5
+step = 2
 GENS = []
 SUMS = []            # store loci sums
 
@@ -311,59 +315,73 @@ startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
 startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
 startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
+#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
+#~ rstore.dump_data(metapop)
 GENS.append( metapop.generation )
 SUMS.append( metapop.all_sums() )
 print metapop
 
-#! Migration-selection equilibrium
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+##! Migration-selection equilibrium
+##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.run(n, weights, threshold=1e-4, step=step, runstore=rstore)
+GENS.append( metapop.generation )
+SUMS.append( metapop.all_sums() )
 print metapop
 
-#! Introduction of preference allele P1
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+##! Introduction of preference allele P1
+##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.introduce_allele('pop3', 'P1', intro_freq=intro, advance_generation_count=True)
-rstore.dump_data(metapop.generation, metapop.freqs)
+#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
+rstore.dump_data(metapop)
 #~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
+GENS.append( metapop.generation )
+SUMS.append( metapop.all_sums() )
 print metapop
 
-#! Equilibrium
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+##! Equilibrium
+##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.run(n, weights, threshold=1e-4, step=step, runstore=rstore)
+GENS.append( metapop.generation )
+SUMS.append( metapop.all_sums() )
 print metapop
 
-#! Introduction of preference allele P2
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+##! Introduction of preference allele P2
+##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.introduce_allele('pop4', 'P2', intro_freq=intro, advance_generation_count=True)
-rstore.dump_data(metapop.generation, metapop.freqs)
+#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
+rstore.dump_data(metapop)
 #~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
+GENS.append( metapop.generation )
+SUMS.append( metapop.all_sums() )
 print metapop
 
-#! Final state
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+##! Final state
+##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.run(n, weights, threshold=1e-4, step=step, runstore=rstore)
+GENS.append( metapop.generation )
+SUMS.append( metapop.all_sums() )
 print metapop
 
 
-#! Loci (sums)
-#!----------------------------------------------------------------------
+##! Loci (sums)
+##!----------------------------------------------------------------------
 print metapop.overview()
 
     
-#! Dynamic weights (final states)
-#!======================================================================
-#! Sexual selection (final)
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#! Species recognition (final)
-#!----------------------------------------------------------------------
+##! Dynamic weights (final states)
+##!======================================================================
+##! Sexual selection (final)
+##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+##! Species recognition (final)
+##!----------------------------------------------------------------------
 print SR
 
-#! Trait preference (final)
-#!----------------------------------------------------------------------
+##! Trait preference (final)
+##!----------------------------------------------------------------------
 print TP
 
-#~ #! Chart
-#~ #!======================================================================
-#~ show()
-#~ 
-#~ store_sim()
+##~ #! Chart
+##~ #!======================================================================
+##~ show()
+##~ 
+##~ store_sim()

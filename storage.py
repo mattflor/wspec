@@ -1,9 +1,10 @@
 import h5py, datetime
+import numpy as np
 
 def timestamp():
     return "_".join( str( datetime.datetime.now() ).split() )
 
-class runstore(object):
+class Runstore(object):
     def __init__(self, filename, snum=None, rnum=None):
         """
         Open HDF5 file (create if it does not yet exist).
@@ -102,7 +103,7 @@ class runstore(object):
             # resizable generation array:
             self.gens = self.run.create_dataset('generations', (100,), 'i', maxshape=(None,))
             # resizable frequencies array
-            self.freqs = self.run.create_dataset('frequencies', (100,)+fshape, 'i', maxshape=(None,)+fshape)
+            self.freqs = self.run.create_dataset('frequencies', (100,)+fshape, 'f', maxshape=(None,)+fshape)
             self.shape = fshape
         else:
             raise KeyError('`{0}` already exists. You can select it by calling `select_run({1})`.'.format(rname,rnum))
@@ -160,7 +161,7 @@ class runstore(object):
                     desc = 'not available'
                 s += '[\ndescription: {0}\n]\n'.format(desc)
             if self.rnum != None:
-                s += 'current simulation run: {0}\n[\ncount: {1}\nfrequency shape: {2}\n]\n'.format(self.rnum,self.counter[()],self.shape)
+                s += 'current simulation run: {0}\n[\ncount: {1}  (generation: {2})\nfrequency shape: {3}\n]\n'.format(self.rnum, self.counter[()], self.get_generation(), self.shape)
             else:
                 s += 'no simulation run selected\n'
         else:
@@ -176,6 +177,10 @@ class runstore(object):
     def get_count(self):
         return self.counter[()]
     
+    def get_generation(self):
+        c = self.get_count()
+        return self.gens[c-1]
+    
     def resize(self):
         l = len(self.gens)
         self.gens.resize((l+100,))
@@ -184,7 +189,7 @@ class runstore(object):
     def append_sums(self, sums):
         pass
     
-    def dump_data(self, gen, freqs, sums):
+    def dump_data(self, metapop):  # gen, freqs, sums):
         """
         Append generation `gen`, frequencies `freqs`, and locus sums
         `sums` to current datasets.
@@ -197,15 +202,16 @@ class runstore(object):
             sums: list of ndarrays
                 list of locus sums
         """
-        c = self.get_count()
-        if c > 0:
-            assert gen > self.gens[c-1]   # dump data must not lie in the past
-        if c >= len(self.gens):
-            self.resize()
-        self.gens[c] = gen
-        self.freqs[c] = freqs
-        self.append_sums(sums)
-        self.advance_counter()
+        if metapop.generation > 0 and metapop.generation <= self.get_generation():   # dump data must not lie in the past
+            pass
+        else:
+            c = self.get_count()
+            if c >= len(self.gens):
+                self.resize()
+            self.gens[c] = metapop.generation   #gen
+            self.freqs[c] = metapop.freqs
+            self.append_sums(metapop.all_sums())
+            self.advance_counter()
 
 def get_frequencies(g, filename, snum, rnum):
     with h5py.File(filename, 'r') as df:    # read-only

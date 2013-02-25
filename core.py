@@ -460,12 +460,15 @@ class MetaPopulation(object):
         n += self.generation
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
         
-        if runstore != None:
-            gstore = runstore['generations']
-            fstore = runstore['frequencies']
-            count  = runstore['count']
         still_changing = True
         while still_changing and self.generation < n:
+            # data storage:
+            if self.runstore != None:
+                if self.generation % step == 0:
+                    #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
+                    self.runstore.dump_data(self)
+                    self.runstore.flush()
+                    
             previous = np.copy(self.freqs)
             
             ### migration ##################################
@@ -489,14 +492,10 @@ class MetaPopulation(object):
             self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
             self.normalize()
             
-            if self.runstore != None:
-                if self.generation % step == 0:
-                    self.runstore.dump_data(self.generation, self.freqs)
-                    self.runstore.flush()
-            
             self.generation += 1
             still_changing = utils.diff(self.freqs, previous) > thresh
         
         if self.runstore != None:   # store final state
-            self.runstore.dump_data(self.generation, self.freqs)
+            #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
+            self.runstore.dump_data(self)
         self.eq = not still_changing
