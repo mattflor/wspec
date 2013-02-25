@@ -250,7 +250,6 @@ class MetaPopulation(object):
         self.eq = eq
         labels = utils.panda_index(self.alleles, self.loci)
         self.panda = pd.Series(self.freqs.flatten(), index=labels, name=name)
-        self.livechart = False
         
         r_axes = config['REPRO_AXES']
         self.repro_axes = {'all': r_axes}
@@ -260,14 +259,7 @@ class MetaPopulation(object):
             w_axes = utils.reproduction_axes(self.loci, who)
             self.repro_axes[who] = w_axes
             self.repro_idxs[who] = [r_axes.index(a) for a in w_axes]
-            
-        #~ self.male_axes = utils.reproduction_axes(self.loci, 'male')
-        #~ self.male_idxs = [self.repro_axes.index(a) for a in self.male_axes]
-        #~ self.female_axes = utils.reproduction_axes(self.loci, 'female')
-        #~ self.female_idxs = [self.repro_axes.index(a) for a in self.female_axes]
-        #~ self.offspring_axes = utils.reproduction_axes(self.loci, 'offspring')
-        #~ self.offspring_idxs = [self.repro_axes.index(a) for a in self.offspring_axes]
-    
+                
     def __str__(self):
         """
         Returns nicely formatted string representation of metapopulation 
@@ -313,19 +305,9 @@ class MetaPopulation(object):
         """
         self.panda.data = self.freqs.flatten()
     
-    def store_freqs(self, filename='freqs.npy'):
-        np.save(filename, self.freqs)
-    
-    def load_freqs(self, filename='freqs.npy'):
-        freqs = np.load(filename)
-        assert np.shape(freqs) == self.shape
-        self.freqs = freqs
-        self.update()
-    
-    def load(self, frequencies, generation):
-        self.generation = generation
-        self.freqs = frequencies[str(generation)]
-    
+    def load_freqs_from_file(self, g, filename, snum, rnum):
+        self.freqs = storage.get_frequencies(g, filename, snum, rnum)
+        
     def get_sum(self, allele, pop):
         """
         Return the summed frequency of `allele` in `pop`.
@@ -436,7 +418,7 @@ class MetaPopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, n, weights, step=100, threshold=1e-4, chart=None):
+    def run(self, n, weights, step=100, threshold=1e-4, runstore=None):
         """
         Simulate next `n` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
@@ -454,8 +436,8 @@ class MetaPopulation(object):
                 (arr.ndim) to calculate `thresh`, and the simulation run
                 is stopped if the average difference between consecutive
                 generations has become smaller than `thresh`.
-            chart: visualization.stripchart instance
-                if provided, live stripcharting is enabled
+            runstore: storage.runstore instance
+                if provided, simulation run is stored in datafile
         """
         M = weights['migration']
         VS = weights['viability_selection']
@@ -463,7 +445,7 @@ class MetaPopulation(object):
         SR,TP = weights['dynamic_reproduction']
         pt = SR.pt
         
-        self.chart = chart
+        self.runstore = runstore
         n += self.generation
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
 
@@ -492,21 +474,14 @@ class MetaPopulation(object):
             self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
             self.normalize()
             
-            #~ if self.generation % step == 0:
-                #~ GENS.append(self.generation)
-                #~ FREQS.append(self.freqs)
-                #~ allele_freqs = []
-                #~ for i,pop in enumerate(self.populations):
-                    #~ allele_freqs.append([])
-                    #~ for al in chartlabels[pop]:
-                        #~ allele_freqs[i].append( self.get_sum(al, pop) )
-                #~ update_plot_data(self.generation, allele_freqs)
-                #~ if self.chart:
-                    #~ self.chart.update()
+            if self.runstore != None:
+                if self.generation % step == 0:
+                    self.runstore.dump_data(self.generation, self.freqs)
+                    self.runstore.flush()
             
             self.generation += 1
             still_changing = utils.diff(self.freqs, previous) > thresh
-  
+        
+        if self.runstore != None:   # store final state
+            self.runstore.dump_data(self.generation, self.freqs)
         self.eq = not still_changing
-        if self.chart:
-            self.chart.finalize()
