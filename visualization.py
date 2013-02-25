@@ -1,10 +1,46 @@
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
 
+# n_loci: (nx, ny)    -->  subplot(ny,nx,i+1) for i in range (n_loci)
+loc_dims = {'1': (1,1), \
+            '2': (1,2), \
+            '3': (2,2), \
+            '4': (2,2), \
+            '5': (2,3), \
+            '6': (2,3), \
+            '7': (2,4), \
+            '8': (2,4), \
+            '9': (3,3)
+           }
+
 class stripchart(object):
     def __init__(self, labels):
-        self.fig = plt.figure(figsize=[20,5])
-        self.fig.suptitle(scenarioname)
+        """
+        Args:
+            labels: nested list of strings
+                equivalent to `ALLELES` in a scenario file
+        """
+        # set up dimensions:
+        self.pops = labels[0]
+        self.loci = labels[1:]
+        self.shape = utils.list_shape(labels)
+        n_pops = len(self.pops)       # --> number of figures
+        n_loci = len(self.loci)       # --> number of subplots per figure
+        ny,nx = loc_dims[str(n_loci)]
+        figsize = [n_cols,n_rows+1]
+        
+        self.figs = []
+        self.data = []
+        for pop in self.pops:
+            self.figs.append(figure(figsize=figsize))
+            self.data
+            for loc in self.loci:
+                
+            
+        
+        self.fig = plt.figure(figsize=figsize)
+        if title:
+            self.fig.suptitle(title)
         self.fig.subplots_adjust(left = 0.04, right = 0.94, wspace = 0.32)
         legend_font = FontProperties()
         legend_font.set_size('small')       

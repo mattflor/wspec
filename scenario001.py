@@ -13,243 +13,6 @@ np.set_printoptions(precision=4, suppress=True, linewidth=200)
 report = False                   # set this to True if running script through pyreport (vertical subplots)
 scenarioname='scenario04_01'    #str(os.path.splitext(__file__)[0])
 
-
-#~ class metapopulation(object):
-    #~ def __init__(self, frequencies, config, generation=0, name='metapopulation', eq='undetermined'):
-        #~ self.loci = config['LOCI']
-        #~ self.n_loci = len(self.loci)
-        #~ self.alleles = config['ALLELES']
-        #~ self.repro_axes = config['REPRO_AXES']  # reproduction_axes(loci)
-        #~ self.repro_dim = config['REPRO_DIM']    #len(self.repro_axes)
-        #~ assert np.shape(frequencies) == utils.list_shape(self.alleles)
-        #~ self.freqs = frequencies
-        #~ self.ndim = self.freqs.ndim
-        #~ self.shape = self.freqs.shape
-        #~ self.size = self.freqs.size
-        #~ self.normalize()
-        #~ self._allele_idxs = utils.make_allele_dictionary(self.loci, self.alleles)
-        #~ self.labels = utils.panda_index(self.alleles, self.loci)
-        #~ self.populations = self.alleles[0]
-        #~ self.n_pops = len(self.populations)
-        #~ self.generation = generation
-        #~ self.name = name
-        #~ self.eq = eq
-        #~ self.panda = pd.Series(self.freqs.flatten(), index=self.labels, name=name)
-        #~ self.livechart = False
-        #~ 
-        #~ self.male_axes = utils.reproduction_axes(self.loci, 'male')
-        #~ self.male_idxs = [self.repro_axes.index(a) for a in self.male_axes]
-        #~ self.female_axes = utils.reproduction_axes(self.loci, 'female')
-        #~ self.female_idxs = [self.repro_axes.index(a) for a in self.female_axes]
-        #~ self.offspring_axes = utils.reproduction_axes(self.loci, 'offspring')
-        #~ self.offspring_idxs = [self.repro_axes.index(a) for a in self.offspring_axes]
-    #~ 
-    #~ def __str__(self):
-        #~ if not self.isuptodate():
-            #~ self.update()
-        #~ s = "{0}\nName: {1}\nGeneration: {2}\nEQ: {3}".format( \
-                #~ self.panda.unstack([0,-1]).to_string(float_format=myfloat), \
-                #~ self.name, \
-                #~ self.generation, \
-                #~ self.eq )
-        #~ return s
-    #~ 
-    #~ def overview(self):
-        #~ s = str(self.get_sums_pd([1,2]).unstack(2)) + '\n'
-        #~ s += 'Name: background loci\n\n'
-        #~ for loc in self.loci[3:]:
-            #~ s += str(self.get_sums_pd(loc).unstack(1)) + '\n'
-            #~ s += 'Name: {0}\n\n'.format(loc)
-        #~ return s
-    #~ 
-    #~ def normalize(self):
-        #~ s = sum_along_axes(self.freqs, 0)          # first axis are `populations`
-        #~ self.freqs /= extend(s, self.ndim, 0)      # in-place, no copy
-    #~ 
-    #~ def isuptodate(self):
-        #~ return np.all(self.panda.values == self.freqs.flatten())
-    #~ 
-    #~ def update(self):
-        #~ self.panda.data = self.freqs.flatten()
-    #~ 
-    #~ def store_freqs(self, filename='freqs.npy'):
-        #~ np.save(filename, self.freqs)
-    #~ 
-    #~ def load_freqs(self, filename='freqs.npy'):
-        #~ freqs = np.load(filename)
-        #~ assert np.shape(freqs) == self.shape
-        #~ self.freqs = freqs
-        #~ self.update()
-    #~ 
-    #~ def load(self, frequencies, generation):
-        #~ self.generation = generation
-        #~ self.freqs = frequencies[str(generation)]
-    #~ 
-    #~ def get_sum(self, allele, pop):
-        #~ if not isinstance(pop,int): pop = self.populations.index(pop)
-        #~ l,a = self._allele_idxs[allele]
-        #~ return sum_along_axes(self.freqs, [0,l])[pop,a]
-#~ 
-    #~ def get_sums(self, locus, pop=None):
-        #~ level = [0]
-        #~ if not isinstance(locus, list):
-            #~ locus = [locus]
-        #~ for loc in locus:
-            #~ if isinstance(loc, int): level.append(loc)
-            #~ else: level.append( self.loci.index(loc) )
-        #~ if pop or pop==0:
-            #~ if not isinstance(pop,int):
-                #~ popname, pop = pop, self.populations.index(pop)
-            #~ else:
-                #~ popname = self.populations[pop]
-            #~ return sum_along_axes(self.freqs, level)[pop]
-        #~ return sum_along_axes(self.freqs, level)
-    #~ 
-    #~ def get_sums_pd(self, locus, pop=None):
-        #~ if not self.isuptodate():
-            #~ self.update()
-        #~ level = [0]
-        #~ if not isinstance(locus, list):
-            #~ locus = [locus]
-        #~ for loc in locus:
-            #~ if isinstance(loc, int): level.append(loc)
-            #~ else: level.append( self.loci.index(loc) )
-        #~ p = self.panda.sum(level=level)
-        #~ if pop or pop==0:
-            #~ if isinstance(pop,int):
-                #~ pop = self.populations[pop]
-            #~ return p[pop]
-        #~ return p
-    #~ 
-    #~ def introduce_allele(self, pop, allele, intro_freq, advance_generation_count=True):
-        #~ """
-        #~ `pop` : population index or name
-        #~ `allele` : allele name
-        #~ `intro_freq` : introduction frequency of `allele`
-        #~ """
-        #~ if not isinstance(pop,int):
-            #~ pop = self.populations.index(pop)
-        #~ loc,al = self._allele_idxs[allele]
-        #~ lfreqs = sum_along_axes(self.freqs, [0,loc])[pop]
-        #~ try:
-            #~ assert lfreqs[al] == 0.
-        #~ except AssertionError:
-            #~ raise AssertionError, 'allele `{0}` already present in {1}'.format(allele,self.populations[pop])
-        #~ locus_sums = np.sum( self.freqs, axis=loc )[pop]   # freqs: (2,2,3,2) --> (2,2,2)[pop] --> (2,2)
-        #~ idxs = [slice(None,None,None) for i in range(self.ndim)]
-        #~ idxs[0] = pop
-        #~ idxs[loc] = al
-        #~ self.freqs[pop] *= 1 - intro_freq
-        #~ self.freqs[idxs] = intro_freq * locus_sums
-        #~ if advance_generation_count:
-            #~ self.generation += 1
-        #~ self.eq = 'not determined'
-    #~ 
-    #~ def run(self, n=1000, step=100, threshold=1e-4, chart=None):
-        #~ """
-        #~ Simulate next `n` generations. Abort if difference between consecutive
-        #~ generations is smaller than `threshold`.
-        #~ `step` is used for plotting only.
-        #~ 
-        #~ To enable live stripcharting, pass a stripchart instance to `chart`.
-        #~ """
-        #~ global SR, TP
-        #~ self.chart = chart
-        #~ n += self.generation
-        #~ thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh`
-        #~ pt = SR.pt
-        #~ species_preferences = [(sno,prefs) for pname,sno,prefs in SR.preferences]
-        #~ trait_preferences = [(pno,prefs) for pname,pno,prefs in TP.preferences]
-        #~ still_changing = True
-        #~ while still_changing and self.generation < n:
-            #~ previous = np.copy(self.freqs)
-            #~ ### migration ##################################
-            #~ self.freqs = np.sum(self.freqs[np.newaxis,...] * M_, 1)   # sum over source axis
-            #~ self.normalize()
-            #~ 
-            #~ ### viability selection ########################
-            #~ self.freqs = self.freqs * V_
-            #~ self.normalize()
-            #~ 
-            #~ ### reproduction ###############################
-            #~ # species recognition:
-            #~ SR.set_to_ones()
-            #~ ABfreqs = self.get_sums(['backA','backB'])
-            #~ for sno, prefs in species_preferences:
-                #~ for pop, ano, bno, pr in prefs:
-                    #~ R = 1./(1-pr*pt*(1-ABfreqs[pop,ano,bno]))
-                    #~ SR.array[pop,sno] *= (1-pr)*R
-                    #~ SR.array[pop,sno,ano,bno] = R
-            #~ SR.array = np.nan_to_num(SR.array)
-            #~ SR_ = SR.extended()
-            #~ 
-            #~ # trait preferences:
-            #~ TP.set_to_ones()
-            #~ traitfreqs = self.get_sums('trait')
-            #~ for pno, prefs in trait_preferences:
-                #~ for pop, tno, pr in prefs:
-                    #~ R = 1./(1-pr*pt*(1-traitfreqs[pop,tno]))
-                    #~ TP.array[pop,pno] *= (1-pr)*R
-                    #~ TP.array[pop,pno,tno] = R
-            #~ TP.array = np.nan_to_num(TP.array)           # replace NaN with zero (happens when pr=pt=1 and x=0)
-            #~ TP_ = TP.extended()
-            #~ 
-            #~ 
-            #~ # offspring production:
-            #~ females = extend( self.freqs, REPRO_DIM, self.female_idxs )
-            #~ males = extend( self.freqs, REPRO_DIM, self.male_idxs )
-            #~ offspring = sum_along_axes( females * males * R_ * SR_ * TP_, self.offspring_idxs )
-            #~ self.freqs = offspring
-            #~ self.normalize()
-            #~ 
-            #~ if self.generation % step == 0:
-                #~ GENS.append(self.generation)
-                #~ FREQS.append(self.freqs)
-                #~ allele_freqs = []
-                #~ for i,pop in enumerate(self.populations):
-                    #~ allele_freqs.append([])
-                    #~ for al in chartlabels[pop]:
-                        #~ allele_freqs[i].append( self.get_sum(al, pop) )
-                #~ update_plot_data(self.generation, allele_freqs)
-                #~ if self.chart:
-                    #~ self.chart.update()
-            #~ 
-            #~ self.generation += 1
-            #~ still_changing = diff(self.freqs, previous) > thresh
-  #~ 
-        #~ self.eq = not still_changing
-        #~ if self.chart:
-            #~ self.chart.finalize()
-
-def update_plot_data(x, y):
-    global XDATA, YDATA
-    XDATA.append(x)
-    for pop,row in enumerate(y):
-        for al,value in enumerate(row):
-            YDATA[pop][al].append(value)
-
-
-def store_sim(filename=scenarioname, cleanup=False):
-    path = filename        # use the same for both
-    if not os.path.isdir(path):
-        os.mkdir(path)
-    simname = os.path.join(path,'simulation.gz')
-    chartname = os.path.join(path,'chart.pdf')
-    df = gzip.open(simname, 'wb')
-    for d in [config, parameters, weights, frequencies]:
-        cPickle.dump(d, df)
-    df.close()
-    chart.fig.savefig(chartname)
-    tar = tarfile.open(filename+'.tar', 'w')
-    tar.add(simname)
-    tar.add(chartname)
-    tar.close()
-    if cleanup:
-        # remove temporary files:
-        for name in [simname, chartname]:
-            os.remove(name)
-        os.rmdir(path)
-
 def load_sim(filename):
     """
     Load simulation data for further interactive work.    
@@ -309,7 +72,7 @@ for p,v in sorted(parameters.items()):
 print
 
 
-# setting up some scenario wide stuff
+# setting up scenario config
 def configure():
     config = {}
     config['LOCI'] = LOCI
@@ -328,20 +91,6 @@ def configure():
 config = configure()           # dictionary for storing simulation
 locals().update(config)
 
-# Set up plot
-# `chartlabels` define what is being plotted             
-chartlabels = {'pop1': ['A1', 'S1', 'P0', 'P1', 'T1', 'W'], \
-               'pop2': ['A1', 'S1', 'P0', 'P1', 'T2', 'W'], \
-               'pop3': ['A1', 'S1', 'P0', 'P1', 'T3', 'W'], \
-               'pop4': ['A2', 'S2', 'P0', 'P2', 'T4', 'W']
-              }
-XDATA = []
-YDATA = [[] for pop in range(N_POPS)]
-for i,pop in enumerate(POPULATIONS):
-    for al in chartlabels[pop]:
-        YDATA[i].append( [] )
-GENS = []
-FREQS = []
         
 #! Weights
 #!======================================================================
@@ -407,8 +156,8 @@ print SR
 
 #! Trait preference
 #!----------------------------------------------------------------------
-trait_preferences = {'P1': {'all pops': ('T1', pr_t1)}, \
-                     'P2': {'all pops': ('T2', pr_t2)}
+trait_preferences = {'P1': {'all pops': ('T3', pr_t1)}, \
+                     'P2': {'all pops': ('T4', pr_t2)}
                     }
 TP = core.PreferenceWeight(name='trait preference', \
                            axes=['population', 'female_preference', 'male_trait'], \
@@ -537,21 +286,22 @@ print SI
 R_ = CI_ * F_ * T_ * PI_ * TI_ * AI_ * BI_ * SI_ * HMS_
 weights['constant_reproduction'] = R_
 
-#~ random_frequencies = npr.random(FSHAPE)
-#~ metapop = metapopulation(random_frequencies, config=config, generation=0, name='metapopulation')
-#~ metapop.normalize()
-#~ 
-#~ if report == True:
-    #~ chart = None
-#~ else:
-    #~ chart = stripchart(chartlabels)
-    #~ plt.show()
-    #~ 
     
 #! Simulation
 #!======================================================================
-n = 50
-frequencies = {}           # dictionary for storing simulation
+rstore = storage.runstore('/extra/flor/data/simdata.h5')
+snum = 1
+rnum = 1
+try: rstore.select_scenario(snum)
+except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
+try: rstore.remove_run(rnum)
+except: pass
+rstore.init_run(rnum, parameters, FSHAPE)
+
+n = 10000
+step = 10
+GENS = []
+SUMS = []            # store loci sums
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -561,57 +311,44 @@ startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
 startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
 startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
+GENS.append( metapop.generation )
+SUMS.append( metapop.all_sums() )
 print metapop
-frequencies['0'] = startfreqs
 
 #! Migration-selection equilibrium
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=1e-4, step=10, runstore=r)
+metapop.run(n, weights, threshold=1e-4, step=step, runstore=rstore)
 print metapop
-frequencies[str(metapop.generation)] = metapop.freqs
 
 #! Introduction of preference allele P1
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.introduce_allele('pop3', 'P1', intro_freq=intro, advance_generation_count=True)
+rstore.dump_data(metapop.generation, metapop.freqs)
 #~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
 print metapop
-frequencies[str(metapop.generation)] = metapop.freqs
-#~ GENS.append(metapop.generation)
-#~ FREQS.append(metapop.freqs)
 
 #! Equilibrium
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=1e-4, step=10, runstore=r)
+metapop.run(n, weights, threshold=1e-4, step=step, runstore=rstore)
 print metapop
-frequencies[str(metapop.generation)] = metapop.freqs
-#~ GENS.append(metapop.generation)
-#~ FREQS.append(metapop.freqs)
 
 #! Introduction of preference allele P2
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.introduce_allele('pop4', 'P2', intro_freq=intro, advance_generation_count=True)
+rstore.dump_data(metapop.generation, metapop.freqs)
 #~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
 print metapop
-frequencies[str(metapop.generation)] = metapop.freqs
-#~ GENS.append(metapop.generation)
-#~ FREQS.append(metapop.freqs)
 
 #! Final state
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=1e-4, step=10, runstore=r)
+metapop.run(n, weights, threshold=1e-4, step=step, runstore=rstore)
 print metapop
-frequencies[str(metapop.generation)] = metapop.freqs
-#~ GENS.append(metapop.generation)
-#~ FREQS.append(metapop.freqs)
+
 
 #! Loci (sums)
 #!----------------------------------------------------------------------
 print metapop.overview()
 
-#~ if report:
-    #~ chart = stripchart(chartlabels)
-    #~ chart.draw()
-    #~ chart.finalize()
     
 #! Dynamic weights (final states)
 #!======================================================================

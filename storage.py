@@ -1,5 +1,7 @@
-import h5py
+import h5py, datetime
 
+def timestamp():
+    return "_".join( str( datetime.datetime.now() ).split() )
 
 class runstore(object):
     def __init__(self, filename, snum=None, rnum=None):
@@ -44,6 +46,12 @@ class runstore(object):
         self.f.close()
         self.reset()
     
+    def flush(self):
+        """
+        Flush memory to file.
+        """
+        self.f.flush()
+    
     def open(self, filename, snum=None, rnum=None):
         self.f = h5py.File(filename, 'a')
         self.filename = filename
@@ -53,10 +61,25 @@ class runstore(object):
             if rnum:
                 self.run = self.select_run(rnum)
         
-    def create_scenario(self, snum, desc=None):
+    def create_scenario(self, snum, labels, desc=None):
+        """
+        Args:
+            snum: int
+                scenario number
+            labels: tuple
+                tuple of loci list and alleles list
+            desc: string
+                scenario description
+        """
         sname = 'scenario_{0}'.format(snum)
         if not sname in self.f:
             self.scenario = self.f.create_group(sname)
+            loci, alleles = labels
+            self.scenario['loci'] = np.array(loci)    # create dataset (ndarray of strings)
+            self.scenario.create_group('alleles')
+            for i,loc in enumerate(loci):
+                self.scenario['alleles'][loc] = alleles[i]   # create a dataset for each locus
+            self.scenario.attrs['timestamp'] = timestamp()
             self.snum = snum
             if desc:
                 self.write_description(snum, desc)
@@ -73,6 +96,7 @@ class runstore(object):
             # setting simulation parameters as attributes:
             for p,v in pars.items():
                 self.run.attrs[p] = v
+            self.run.attrs['timestamp'] = timestamp()
             # integer counter:
             self.counter = self.run.create_dataset('counter', (), 'i')
             # resizable generation array:
@@ -82,7 +106,15 @@ class runstore(object):
             self.shape = fshape
         else:
             raise KeyError('`{0}` already exists. You can select it by calling `select_run({1})`.'.format(rname,rnum))
-            
+    
+    def remove_run(self, rnum):
+        del self.scenario['run_{0}'.format(rnum)]
+        self.run = None
+        self.rnum = None
+        self.counter = None
+        self.gens = None
+        self.freqs = None
+        self.shape = None
     
     def select_scenario(self, snum, verbose=True):
         if verbose:
@@ -149,13 +181,35 @@ class runstore(object):
         self.gens.resize((l+100,))
         self.freqs.resize((l+100,)+self.shape)
     
-    def dump_data(self, gen, freqs):
+    def append_sums(self, sums):
+        pass
+    
+    def dump_data(self, gen, freqs, sums):
         """
-        Append generation `gen` and frequencies `freqs` to current datasets.
+        Append generation `gen`, frequencies `freqs`, and locus sums
+        `sums` to current datasets.
+        
+        Args:
+            gen: int
+                generation
+            freqs: ndarray
+                frequencies
+            sums: list of ndarrays
+                list of locus sums
         """
         c = self.get_count()
+        if c > 0:
+            assert gen > self.gens[c-1]   # dump data must not lie in the past
         if c >= len(self.gens):
             self.resize()
         self.gens[c] = gen
         self.freqs[c] = freqs
+        self.append_sums(sums)
         self.advance_counter()
+
+def get_frequencies(g, filename, snum, rnum):
+    with h5py.File(filename, 'r') as df:    # read-only
+        run = df['/scenario_{0}/run_{1}'.format(snum,rnum)]
+        generations = run['generations'][:]    # generations array
+        idx = np.searchsorted(generations, g)   # get index of generation closest to given g
+        return run['frequencies'][idx]
