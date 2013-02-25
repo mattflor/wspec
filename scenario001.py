@@ -293,13 +293,15 @@ rstore = storage.runstore('/extra/flor/data/simdata.h5')
 snum = 1
 rnum = 1
 try: rstore.select_scenario(snum)
-except: rstore.create_scenario(snum)
+except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
 try: rstore.remove_run(rnum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE)
 
 n = 10000
 step = 10
+GENS = []
+SUMS = []            # store loci sums
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -309,6 +311,8 @@ startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
 startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
 startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
+GENS.append( metapop.generation )
+SUMS.append( metapop.all_sums() )
 print metapop
 
 #! Migration-selection equilibrium

@@ -353,6 +353,17 @@ class MetaPopulation(object):
             return sum_along_axes(self.freqs, level)[pop]
         return sum_along_axes(self.freqs, level)
     
+    def all_sums(self):
+        """
+        Returns:
+            out: list of ndarrays
+                list of loci sums (each locus sum is an ndarray)
+        """
+        sums = []
+        for locus in self.loci[1:]:
+            sums.append( self.get_sums(locus) )
+        return sums
+    
     def get_sums_pd(self, locus, pop=None):
         """
         Return the summed frequency at `locus` (in `pop` if given, or
