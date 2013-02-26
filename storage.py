@@ -1,5 +1,9 @@
 import h5py, datetime
 import numpy as np
+import utilities as utils
+import visualization as viz
+for mod in [utils, viz]:
+    reload(mod)
 
 def timestamp():
     return "_".join( str( datetime.datetime.now() ).split() )
@@ -27,6 +31,8 @@ class Runstore(object):
         self.counter = None
         self.gens = None
         self.freqs = None
+        self.loci = None
+        self.alleles = None
         self.shape = None
         if snum:
             self.scenario = self.select_scenario(snum)
@@ -41,6 +47,8 @@ class Runstore(object):
         self.counter = None
         self.gens = None
         self.freqs = None
+        self.loci = None
+        self.alleles = None
         self.shape = None
     
     def close(self):
@@ -75,11 +83,13 @@ class Runstore(object):
         sname = 'scenario_{0}'.format(snum)
         if not sname in self.f:
             self.scenario = self.f.create_group(sname)
-            loci, alleles = labels
-            self.scenario['loci'] = np.array(loci)    # create dataset (ndarray of strings)
+            self.loci, self.alleles = labels
+            self.scenario['loci'] = np.array(self.loci)    # create dataset (ndarray of strings)
             self.scenario.create_group('alleles')
-            for i,loc in enumerate(loci):
-                self.scenario['alleles'][loc] = alleles[i]   # create a dataset for each locus
+            for i,loc in enumerate(self.loci):
+                self.scenario['alleles'][loc] = self.alleles[i]   # create a dataset for each locus
+            self.scenario.attrs['npops'] = len(self.alleles[0])
+            self.scenario.attrs['alleleshape'] = utils.list_shape(self.alleles)
             self.scenario.attrs['timestamp'] = timestamp()
             self.snum = snum
             if desc:
@@ -87,7 +97,7 @@ class Runstore(object):
         else:
             raise KeyError('{0} already exists. You can select it by calling `select_scenario({1})`.'.format(sname,snum))
     
-    def init_run(self, rnum, pars, fshape):
+    def init_run(self, rnum, pars, fshape, init_len=100):
         if self.scenario == None:
             raise KeyError('select a scenario first')
         rname = 'run_{0}'.format(rnum)
@@ -101,9 +111,14 @@ class Runstore(object):
             # integer counter:
             self.counter = self.run.create_dataset('counter', (), 'i')
             # resizable generation array:
-            self.gens = self.run.create_dataset('generations', (100,), 'i', maxshape=(None,))
+            self.gens = self.run.create_dataset('generations', (init_len,), 'i', maxshape=(None,))
             # resizable frequencies array
-            self.freqs = self.run.create_dataset('frequencies', (100,)+fshape, 'f', maxshape=(None,)+fshape)
+            self.freqs = self.run.create_dataset('frequencies', (init_len,)+fshape, 'f', maxshape=(None,)+fshape)
+            self.sums = self.run.create_group('sums')
+            npops = self.scenario.attrs['npops']
+            ashape = self.scenario.attrs['alleleshape']
+            for i,loc in enumerate(self.loci[1:]):
+                ds = self.run['sums'].create_dataset(loc, (init_len,npops,ashape[i+1]), 'f', maxshape=(None,npops,ashape[i+1]))   # create a dataset for each locus
             self.shape = fshape
         else:
             raise KeyError('`{0}` already exists. You can select it by calling `select_run({1})`.'.format(rname,rnum))
@@ -122,6 +137,8 @@ class Runstore(object):
             print 'selecting scenario {0} from file {1}'.format(snum, self.filename)
         self.scenario = self.f['scenario_{0}'.format(snum)]
         self.snum = snum
+        self.loci = list(self.scenario['loci'])
+        self.alleles = list(self.scenario['alleles'])
         return self.scenario
     
     def select_run(self, rnum, verbose=True):
@@ -181,13 +198,27 @@ class Runstore(object):
         c = self.get_count()
         return self.gens[c-1]
     
+    def get_allele_list(self):
+        """
+        Returns nested list of alleles (excluding `pops`!)
+        """
+        alleles = []
+        for loc in self.loci[1:]:
+            alleles.append( list(self.scenario['alleles'][loc][:]) )
+        return alleles
+    
     def resize(self):
         l = len(self.gens)
-        self.gens.resize((l+100,))
-        self.freqs.resize((l+100,)+self.shape)
+        self.gens.resize( (l+100,) )
+        self.freqs.resize( (l+100,)+self.shape )
+        npops = self.scenario.attrs['npops']
+        ashape = self.scenario.attrs['alleleshape']
+        for i,loc in enumerate(self.loci[1:]):
+            self.run['sums'][loc].resize( (l+100,npops,ashape[i+1]) )
     
-    def append_sums(self, sums):
-        pass
+    def insert_sums(self, c, locisums):
+        for i,loc in enumerate(self.loci[1:]):
+            self.run['sums'][loc][c] = locisums[i]
     
     def dump_data(self, metapop):  # gen, freqs, sums):
         """
@@ -210,8 +241,22 @@ class Runstore(object):
                 self.resize()
             self.gens[c] = metapop.generation   #gen
             self.freqs[c] = metapop.freqs
-            self.append_sums(metapop.all_sums())
+            self.insert_sums(c, metapop.all_sums())
             self.advance_counter()
+    
+    def plot_sums(self):
+        pops = list(self.scenario['alleles']['population'][:])
+        print pops
+        alleles = self.get_allele_list()
+        print alleles
+        loci = self.loci[1:]
+        print loci
+        figs = viz.create_figs(pops, loci)
+        gens = self.gens[:]
+        sums = self.run['sums']
+        c = self.get_count()
+        viz.plot_sums(gens, sums, c, loci, alleles, figs, lw=2)
+        return figs
 
 def get_frequencies(g, filename, snum, rnum):
     with h5py.File(filename, 'r') as df:    # read-only

@@ -467,7 +467,7 @@ class MetaPopulation(object):
                 if self.generation % step == 0:
                     #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
                     self.runstore.dump_data(self)
-                    self.runstore.flush()
+                    #~ self.runstore.flush()
                     
             previous = np.copy(self.freqs)
             

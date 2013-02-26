@@ -5,9 +5,10 @@ import numpy.random as npr
 import pandas as pd
 from pylab import show          # pyreport needs this to find figures
 
-import core, storage, visualization
+import core, storage
+import visualization as viz
 import utilities as utils
-for mod in [core,storage,utils]:
+for mod in [core,storage,utils,viz]:
     reload(mod)
 
 
@@ -293,9 +294,9 @@ weights['constant_reproduction'] = R_
 #! Simulation
 #!======================================================================
 #~ rstore = storage.runstore('/extra/flor/data/simdata.h5')
-rstore = storage.Runstore('simdata.h5')
+rstore = storage.Runstore('simdata2.h5')
 snum = 1
-rnum = 1
+rnum = 2
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum)
@@ -304,8 +305,8 @@ try: rstore.remove_run(rnum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-n = 10000
-step = 10
+n = 15
+step = 3
 #~ GENS = []
 #~ SUMS = []            # store loci sums
 
@@ -387,4 +388,7 @@ print TP
 ##~ show()
 ##~ 
 ##~ store_sim()
+
+rstore.flush()
+figs = rstore.plot_sums()
 rstore.close()
