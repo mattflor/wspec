@@ -50,15 +50,16 @@ def plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
         loci: list of strings
             list of locus names (excluding `pops`!)
         alleles: nested list of strings
-            allele names used for the legends
+            allele names used for the legends (also excluding pop names)
         figs: list of matplotlib figures
             created by function `create_figs`
     """
-    npops = len(alleles[0])
+    randomloc = sums.keys()[0]
+    npops = sums[randomloc].shape[1]
     for i in range(npops):
         nloci = len(loci)
         for j,loc in enumerate(loci):
-            for k,allele in enumerate(alleles[j+1]):
+            for k,allele in enumerate(alleles[j]):
                 ax = figs[i].get_axes()[nloci-1-j]
                 ax.plot(gens[:c], sums[loc][:c,i,k], label=allele, **kwargs)
                 ax.set_xlim(0,gens[c-1])
