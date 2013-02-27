@@ -22,13 +22,13 @@ def create_figs(pops, loci, figsize=[5,7]):
         fig.subplots_adjust(left=0.11, right=0.82, bottom=0.07, top=0.94, hspace=0.14)
         fig.suptitle(pop)
         fig.text(0.04, 0.5, 'frequency', ha='center', va='center', rotation='vertical')
-        ax1 = fig.add_subplot(nloci,1,nloci)    # make the bottom axes the one to share with
+        ax1 = fig.add_subplot(nloci,1,nloci)    # bottom subplot only one with xlabel
         plt.setp(ax1.get_xticklabels(), fontsize=8)
         plt.setp(ax1.get_yticklabels(), fontsize=8)
         ax1.grid()
         ax1.set_xlabel('generation')
-        ax1.text(0, 1.01, loci[-1], fontsize=8)
-        ax1.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)
+        ax1.text(0, 1.01, loci[-1], fontsize=8)  # 'subplot' title outside of axes (upper left)
+        #~ ax1.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)  
         for j in range(nloci-1,0,-1):
             ax = fig.add_subplot(nloci,1,j)
             plt.setp(ax.get_xticklabels(), visible=False)
@@ -54,17 +54,17 @@ def plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
         figs: list of matplotlib figures
             created by function `create_figs`
     """
-    randomloc = sums.keys()[0]
-    npops = sums[randomloc].shape[1]
-    for i in range(npops):
-        nloci = len(loci)
-        for j,loc in enumerate(loci):
-            for k,allele in enumerate(alleles[j]):
-                ax = figs[i].get_axes()[nloci-1-j]
+    randomloc = sums.keys()[0]             # get one of the loci...
+    npops = sums[randomloc].shape[1]       # in order to determine number of pops
+    for i in range(npops):                # iterate through populations/figures
+        nloci = len(loci)                  # number of loci
+        for j,loc in enumerate(loci):     # iterate through loci/subplots
+            for k,allele in enumerate(alleles[j]):   # iterate through alleles at the locus/lines
+                ax = figs[i].get_axes()[nloci-1-j]    # in create_figs, axes were created in reverse order!
                 ax.plot(gens[:c], sums[loc][:c,i,k], label=allele, **kwargs)
                 ax.set_xlim(0,gens[c-1])
-                ax.set_ylim(0,1)
-                ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)
+                ax.set_ylim(0,1)           # all data to plot are frequencies, i.e. between 0 and 1
+                ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)   # legend outside of axes at the right
     plt.show()
 
 #~ class stripchart(object):
