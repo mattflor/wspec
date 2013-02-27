@@ -34,7 +34,7 @@ def create_figs(pops, loci, figsize=[5,7]):
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), fontsize=8)
             ax.grid()
-            ax.text(0, 1.02, loci[j-1], fontsize=8)
+            ax.text(0.01, 1.01, loci[j-1], fontsize=8)
         plt.draw()
     return figs
 
