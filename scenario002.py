@@ -305,6 +305,9 @@ try: rstore.remove_run(rnum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
+mode = 'progress'    # display a generation counter
+#~ mode = 'report'      # create a report with pyreport
+
 n = 15
 step = 3
 #~ GENS = []
@@ -326,7 +329,7 @@ print metapop
 
 ##! Migration-selection equilibrium
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
+metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
 #~ GENS.append( metapop.generation )
 #~ SUMS.append( metapop.all_sums() )
 print metapop
@@ -343,7 +346,7 @@ print metapop
 
 ##! Equilibrium
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
+metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
 #~ GENS.append( metapop.generation )
 #~ SUMS.append( metapop.all_sums() )
 print metapop
@@ -360,7 +363,7 @@ print metapop
 
 ##! Final state
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
+metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
 #~ GENS.append( metapop.generation )
 #~ SUMS.append( metapop.all_sums() )
 print metapop
@@ -390,5 +393,8 @@ print TP
 ##~ store_sim()
 
 rstore.flush()
-figs = rstore.plot_sums()
+try:
+    figs = rstore.plot_sums()
+except:
+    pass
 rstore.close()
