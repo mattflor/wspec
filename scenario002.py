@@ -10,27 +10,8 @@ import visualization as viz
 import utilities as utils
 for mod in [core,storage,utils,viz]:
     reload(mod)
-
-
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
-report = False                   # set this to True if running script through pyreport (vertical subplots)
-scenarioname='scenario04_01'    #str(os.path.splitext(__file__)[0])
 
-def load_sim(filename):
-    """
-    Load simulation data for further interactive work.    
-    """
-    tar = tarfile.open(filename+'.tar', 'r')
-    tar.extractall()
-    tar.close()
-    simfile = os.path.join(filename, 'simulation.gz')
-    df = gzip.open(simfile, 'rb')
-    config = cPickle.load(df)
-    parameters = cPickle.load(df)
-    weights = cPickle.load(df)
-    frequencies = cPickle.load(df)
-    df.close()
-    return dict(config=config, parameters=parameters, weights=weights, frequencies=frequencies)
 
 #! .. contents:: :depth: 5
 #!
@@ -296,7 +277,7 @@ weights['constant_reproduction'] = R_
 #~ rstore = storage.runstore('/extra/flor/data/simdata.h5')
 rstore = storage.Runstore('simdata2.h5')
 snum = 1
-rnum = 2
+rnum = 1
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum)
@@ -305,13 +286,11 @@ try: rstore.remove_run(rnum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-mode = 'progress'    # display a generation counter
-#~ mode = 'report'      # create a report with pyreport
+#~ mode = 'progress'    # display a generation counter
+mode = 'report'      # create a report with pyreport
 
 n = 15
 step = 3
-#~ GENS = []
-#~ SUMS = []            # store loci sums
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -321,51 +300,33 @@ startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
 startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
 startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
-#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
-#~ rstore.dump_data(metapop)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
 print metapop
 
 ##! Migration-selection equilibrium
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
 print metapop
 
 ##! Introduction of preference allele P1
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.introduce_allele('pop3', 'P1', intro_freq=intro, advance_generation_count=True)
-#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
 rstore.dump_data(metapop)
-#~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
 print metapop
 
 ##! Equilibrium
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
 print metapop
 
 ##! Introduction of preference allele P2
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.introduce_allele('pop4', 'P2', intro_freq=intro, advance_generation_count=True)
-#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
 rstore.dump_data(metapop)
-#~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
 print metapop
 
 ##! Final state
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
 print metapop
 
 
@@ -386,15 +347,15 @@ print SR
 ##!----------------------------------------------------------------------
 print TP
 
-##~ #! Chart
-##~ #!======================================================================
-##~ show()
-##~ 
-##~ store_sim()
-
 rstore.flush()
+
+#! Plots
+#!======================================================================
 try:
     figs = rstore.plot_sums()
 except:
     pass
+show()
+plt.close('all')
+
 rstore.close()
