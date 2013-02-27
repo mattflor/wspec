@@ -244,18 +244,15 @@ class Runstore(object):
             self.insert_sums(c, metapop.all_sums())
             self.advance_counter()
     
-    def plot_sums(self):
+    def plot_sums(self, figsize=[8,11], **kwargs):
         pops = list(self.scenario['alleles']['population'][:])
-        print pops
         alleles = self.get_allele_list()
-        print alleles
         loci = self.loci[1:]
-        print loci
-        figs = viz.create_figs(pops, loci)
+        figs = viz.create_figs(pops, loci, figsize=figsize)
         gens = self.gens[:]
         sums = self.run['sums']
         c = self.get_count()
-        viz.plot_sums(gens, sums, c, loci, alleles, figs, lw=2)
+        viz.plot_sums(gens, sums, c, loci, alleles, figs, lw=2, **kwargs)
         return figs
 
 def get_frequencies(g, filename, snum, rnum):
