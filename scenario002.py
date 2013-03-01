@@ -3,7 +3,7 @@ sys.path.append(".")             # pyreport needs this to know where to import m
 import numpy as np
 import numpy.random as npr
 import pandas as pd
-from pylab import show          # pyreport needs this to find figures
+from pylab import show, close          # pyreport needs this to find figures
 
 import core, storage
 import visualization as viz
@@ -84,14 +84,14 @@ weights = {}           # dictionary for storing simulation
 #! Migration
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                   
 #~ # pop1, pop2, and pop3 are of equal size, pop4 is twice as large:
-#~ mig = np.array([[1-m,       m,      0,      0], \
-                #~ [  m,   1-2*m,      m,      0], \
-                #~ [  0,       m,  1-2*m,      m/2], \
-                #~ [  0,       0,      m,    1-m/2]], float)
 mig = np.array([[1-m,       m,      0,      0], \
                 [  m,   1-2*m,      m,      0], \
-                [  0,       m,  1-2*m,      m], \
-                [  0,       0,      m,    1-m]], float)
+                [  0,       m,  1-2*m,      m/2], \
+                [  0,       0,      m,    1-m/2]], float)
+#~ mig = np.array([[1-m,       m,      0,      0], \
+                #~ [  m,   1-2*m,      m,      0], \
+                #~ [  0,       m,  1-2*m,      m], \
+                #~ [  0,       0,      m,    1-m]], float)
 M = core.MigrationWeight(name='migration', \
                          axes=['target', 'source'], \
                          config=config, \
@@ -275,8 +275,8 @@ weights['constant_reproduction'] = R_
 #! Simulation
 #!======================================================================
 #~ rstore = storage.runstore('/extra/flor/data/simdata.h5')
-rstore = storage.Runstore('simdata2.h5')
-snum = 1
+rstore = storage.Runstore('simdata.h5')
+snum = 2
 rnum = 1
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
@@ -286,11 +286,11 @@ try: rstore.remove_run(rnum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-#~ mode = 'progress'    # display a generation counter
-mode = 'report'      # create a report with pyreport
+mode = 'progress'    # display a generation counter
+#~ mode = 'report'      # create a report with pyreport
 
-n = 15
-step = 3
+n = 10000
+step = 10
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -356,6 +356,6 @@ try:
 except:
     pass
 show()
-plt.close('all')
+close('all')
 
 rstore.close()

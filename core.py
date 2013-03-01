@@ -462,12 +462,12 @@ class MetaPopulation(object):
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
         
         still_changing = True
-        if mode == 'progress':
-            print 'iterating metapopulation...'
-            progress = pbar.ProgressBar(widgets=['generation: ', pbar.Counter()], maxval=n).start()
+        #~ if mode == 'progress':
+        print 'iterating metapopulation...'
+        progress = pbar.ProgressBar(widgets=['generation: ', pbar.Counter()], maxval=n).start()
         while still_changing and self.generation < n:
-            if mode == 'progress':
-                progress.update(self.generation+1)
+            #~ if mode == 'progress':
+            progress.update(self.generation+1)
             # data storage:
             if self.runstore != None:
                 if self.generation % step == 0:
@@ -505,6 +505,6 @@ class MetaPopulation(object):
             #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
             self.runstore.dump_data(self)
         
-        if mode == 'progress':
-            progress.finish()
+        #~ if mode == 'progress':
+        progress.finish()
         self.eq = not still_changing
