@@ -1,5 +1,13 @@
 import matplotlib.pyplot as plt
+import numpy as np
+import numpy.random as npr
+import utilities as utils
 from matplotlib.font_manager import FontProperties
+#~ from matplotlib import rc
+#~ rc('text', usetex=True)
+#~ rc('font', family='serif')
+from mpltools import style
+style.use('ggplot')
 
 
 legend_font = FontProperties()
@@ -28,7 +36,6 @@ def create_figs(pops, loci, figsize=[5,7]):
         ax1.grid()
         ax1.set_xlabel('generation')
         ax1.text(0, 1.01, loci[-1], fontsize=8)  # 'subplot' title outside of axes (upper left)
-        #~ ax1.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)  
         for j in range(nloci-1,0,-1):
             ax = fig.add_subplot(nloci,1,j)
             plt.setp(ax.get_xticklabels(), visible=False)
@@ -66,6 +73,60 @@ def plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
                 ax.set_ylim(0,1)           # all data to plot are frequencies, i.e. between 0 and 1
                 ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)   # legend outside of axes at the right
     plt.show()
+
+def stacked_bars(sums, loci, alleles, figsize=[18,5]):
+    """
+    Args:
+        sums: list of ndarrays
+            alleles sums for each locus
+        loci: list of strings
+            loci names (including `pop`)
+        alleles: list of list of strings
+            allele names (including `populations`)
+    """
+    # some calculations we need:
+    pops = alleles[0]
+    npops = len(pops)
+    alleles = alleles[1:]
+    nalleles = utils.list_shape(alleles)
+    maxalleles = max(nalleles)
+    loci = loci[1:]     # we don't need the population locus name
+    nloci = len(loci)
+    width = 1.     # bar width
+    xpos = np.arange(nloci)
+    
+    # prepare data:
+    data = np.zeros((npops,nloci,maxalleles), float)
+    for i,loc in enumerate(sums):
+        p,l = loc.shape
+        data[:,i,:l] = loc        # pop, locus, allele
+    cumdata = np.cumsum(data, axis=2)   # we need this for stacking the bars
+    
+    # prepare figure and axes and plot:
+    fig = plt.figure(figsize=figsize)
+    fig.subplots_adjust(wspace=0.1, left=0.04,right=0.92,top=0.91,bottom=0.11)
+    barcolors = npr.random((nloci,maxalleles,3))  # for now, random colors
+    for i,pop in enumerate(pops):
+        ax = fig.add_subplot(1,npops,i+1)
+        ax.set_title(pop)
+        if i==0:
+            ax.set_ylabel('frequency')
+        ax.set_xticks(xpos+width/2.)
+        ax.set_xticklabels(loci)
+        for j,loc in enumerate(loci):
+            for k,allele in enumerate(alleles[j]):
+                if k==0:
+                    ax.bar(xpos[j], data[i,j,k], width, color=tuple(barcolors[j,k]), label=allele)
+                else:
+                    ax.bar(xpos[j], data[i,j,k], width, color=tuple(barcolors[j,k]), bottom=cumdata[i,j,k-1], label=allele)
+        ax.set_ylim(0,1)
+        if i==npops-1:
+            leg = plt.legend(loc="upper left", bbox_to_anchor=(1.01, 1.01), prop=legend_font)
+            leg.get_frame().set_alpha(0) # this will make the box totally transparent
+            leg.get_frame().set_edgecolor('white')
+    fig.autofmt_xdate()
+    plt.show()
+    return fig
 
 #~ class stripchart(object):
     #~ def __init__(self, labels):

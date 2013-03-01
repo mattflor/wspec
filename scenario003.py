@@ -4,7 +4,6 @@ import numpy as np
 import numpy.random as npr
 import pandas as pd
 from pylab import show, close          # pyreport needs this to find figures
-
 import core, storage
 import visualization as viz
 import utilities as utils
@@ -14,6 +13,7 @@ np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
 
 #! .. contents:: :depth: 5
+
 #!
 #! .. sectnum:: :depth: 5
 #!
@@ -27,7 +27,7 @@ ALLELES = [['pop1','pop2','pop3','pop4'], \
            ['A1', 'A2'], \
            ['B1', 'B2'], \
            ['S1', 'S2'], \
-           ['T1','T2','T3','T4'], \
+           ['T1','T2',], \
            ['P0', 'P1', 'P2'], \
            ['U', 'W']
           ]
@@ -38,7 +38,7 @@ for i,loc in enumerate(LOCI):
 #! Parameters
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 migration_rate = m = 0.01           # symmetric migration!
-selection_coefficient = s = 0.1     # T1 in pop1, T2 in pop2
+selection_coefficient = s = 1.     # T1 in pop1, T2 in pop2
 ci_level = l = 0.9                  # CI level
 fecundity_reduction = f = 0.        # fecundity reduction in infected females
 transmission_rate = t = 0.87        # transmission of Wolbachia
@@ -84,14 +84,14 @@ weights = {}           # dictionary for storing simulation
 #! Migration
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                   
 #~ # pop1, pop2, and pop3 are of equal size, pop4 is twice as large:
-mig = np.array([[1-m,       m,      0,      0], \
-                [  m,   1-2*m,      m,      0], \
-                [  0,       m,  1-2*m,      m/2], \
-                [  0,       0,      m,    1-m/2]], float)
 #~ mig = np.array([[1-m,       m,      0,      0], \
                 #~ [  m,   1-2*m,      m,      0], \
-                #~ [  0,       m,  1-2*m,      m], \
-                #~ [  0,       0,      m,    1-m]], float)
+                #~ [  0,       m,  1-2*m,      m/2], \
+                #~ [  0,       0,      m,    1-m/2]], float)
+mig = np.array([[1-m,       m,      0,      0], \
+                [  m,   1-2*m,      m,      0], \
+                [  0,       m,  1-2*m,      m], \
+                [  0,       0,      m,    1-m]], float)
 M = core.MigrationWeight(name='migration', \
                          axes=['target', 'source'], \
                          config=config, \
@@ -103,10 +103,10 @@ print M
 
 #! Viability selection
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-viab = np.array([[1+s,      1,      1,      1], \
-                 [  1,    1+s,      1,      1], \
-                 [  1,      1,    1+s,      1], \
-                 [  1,      1,      1,    1+s]], float)
+viab = np.array([[   1+s,        1    ], \
+                 [   1+s,        1    ], \
+                 [   1+s,        1    ], \
+                 [     1,      1+s    ]], float)
 VS = core.ViabilityWeight(name='viability selection', \
                           axes=['population','trait'], \
                           config=config, \
@@ -141,8 +141,8 @@ print SR
 
 #! Trait preference
 #!----------------------------------------------------------------------
-trait_preferences = {'P1': {'all pops': ('T3', pr_t1)}, \
-                     'P2': {'all pops': ('T4', pr_t2)}
+trait_preferences = {'P1': {'all pops': ('T1', pr_t1)}, \
+                     'P2': {'all pops': ('T2', pr_t2)}
                     }
 TP = core.PreferenceWeight(name='trait preference', \
                            axes=['population', 'female_preference', 'male_trait'], \
@@ -227,7 +227,7 @@ TI = core.ReproductionWeight(name='trait inheritance', \
                              config=config, \
                              unstack_levels=[2], \
                             )
-TI.set( utils.nuclear_inheritance(4) )
+TI.set( utils.nuclear_inheritance(2) )
 TI_ = TI.extended()
 print TI
 
@@ -274,38 +274,37 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
-#~ rstore = storage.runstore('/extra/flor/data/simdata.h5')
-rstore = storage.Runstore('simdata.h5')
-snum = 2
+rstore = storage.RunStore('/extra/flor/data/simdata.h5')
+#~ rstore = storage.Runstore('simdata2.h5')
+snum = 5
 rnum = 1
-
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum)
 except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
-try: rstore.remove_run(rnum)
+try: rstore.remove_run(rnum, snum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-mode = 'progress'    # display a generation counter
+mode = None
 #~ mode = 'report'      # create a report with pyreport
 
-n = 10000
+n = 50
 step = 10
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 startfreqs = np.zeros(FSHAPE)
 startfreqs[0,0,0,0,0,0,0] = 1.                   # pop1-A1-B1-S1-T1-P0-U
-startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
-startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
-startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
+startfreqs[1,0,0,0,0,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
+startfreqs[2,0,0,0,0,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
+startfreqs[3,1,1,1,1,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
 print metapop
 
 ##! Migration-selection equilibrium
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
+progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
 print metapop
 
 ##! Introduction of preference allele P1
@@ -316,7 +315,7 @@ print metapop
 
 ##! Equilibrium
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
+progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
 print metapop
 
 ##! Introduction of preference allele P2
@@ -327,7 +326,8 @@ print metapop
 
 ##! Final state
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, mode=mode)
+progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
+progress_final = progress.finish(maxval=False, fdwrite=False)   # capture progress._format_line for printing at the very end
 print metapop
 
 
@@ -348,14 +348,17 @@ print SR
 ##!----------------------------------------------------------------------
 print TP
 
+print
+print progress_final
 rstore.flush()
 
 #! Plots
 #!======================================================================
 try:
     figs = rstore.plot_sums()
+    bars = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles)
 except:
-    pass
+    raise
 if mode == 'report':
     show()
     close('all')
