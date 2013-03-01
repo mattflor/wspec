@@ -25,6 +25,8 @@ def empty_current():
          }
     return d
 
+special_dtype = np.dtype([('generation', 'i'), ('state', 'S64')])
+
 class RunStore(object):
     def __init__(self, filename, snum=None, rnum=None):
         """
@@ -126,6 +128,7 @@ class RunStore(object):
             self.counter = run.create_dataset('counter', (), 'i')
             # resizable generation array:
             gens = run.create_dataset('generations', (init_len,), 'i', maxshape=(None,))
+            special_gens = run.create_dataset('special states', (1,), special_dtype, maxshape=(None,))
             # resizable frequencies array
             freqs = run.create_dataset('frequencies', (init_len,)+fshape, 'f', maxshape=(None,)+fshape)
             npops = scenario.attrs['npops']
@@ -299,7 +302,21 @@ class RunStore(object):
             self.current['gens'][c] = metapop.generation   #gen
             self.current['freqs'][c] = metapop.freqs
             self.append_sums(c, metapop.all_sums())
-            self.advance_counter()
+            self.advance_counter() 
+    
+    def record_special_state(self, g, description):
+        """Args:
+            g: int
+                generation
+            description: str (max length: 64)
+                usually one of the following state descriptions
+                start        - start state
+                eq           - an equilibrium has been reached
+                intro allele - introduction of an allele
+                max          - the maximum number of generations has been reached
+        """
+        special = np.array([g, description], dtype=special_dtype)
+        self.current['run']['special states'][0] = special
     
     def plot_sums(self, figsize=[8,11], snum=None, rnum=None, **kwargs):
         if (snum is not None) and (rnum is not None):
