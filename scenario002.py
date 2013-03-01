@@ -37,8 +37,8 @@ for i,loc in enumerate(LOCI):
     
 #! Parameters
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-migration_rate = m = 0.02           # symmetric migration!
-selection_coefficient = s = 1.     # T1 in pop1, T2 in pop2
+migration_rate = m = 0.01           # symmetric migration!
+selection_coefficient = s = 0.1     # T1 in pop1, T2 in pop2
 ci_level = l = 0.9                  # CI level
 fecundity_reduction = f = 0.        # fecundity reduction in infected females
 transmission_rate = t = 0.87        # transmission of Wolbachia
@@ -274,10 +274,10 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
-#~ rstore = storage.runstore('/extra/flor/data/simdata.h5')
-rstore = storage.Runstore('simdata2.h5')
+rstore = storage.Runstore('/extra/flor/data/simdata.h5')
+#~ rstore = storage.Runstore('simdata2.h5')
 snum = 1
-rnum = 1
+rnum = 3
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum)
@@ -286,11 +286,11 @@ try: rstore.remove_run(rnum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-#~ mode = 'progress'    # display a generation counter
-mode = 'report'      # create a report with pyreport
+mode = 'progress'    # display a generation counter
+#~ mode = 'report'      # create a report with pyreport
 
-n = 15
-step = 3
+n = 10000
+step = 10
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -355,7 +355,8 @@ try:
     figs = rstore.plot_sums()
 except:
     pass
-show()
-plt.close('all')
+if mode == 'report':
+    show()
+    close('all')
 
 rstore.close()
