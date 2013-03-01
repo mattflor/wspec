@@ -13,6 +13,7 @@ import progressbar as pbar
 extend = utils.extend
 sum_along_axes = utils.sum_along_axes
 import pdb
+reload(pbar)
 
 class Weight(object):
     """
@@ -430,7 +431,7 @@ class MetaPopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, mode=None):
+    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, mode=None, progress=None):
         """
         Simulate next `n` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
@@ -462,12 +463,13 @@ class MetaPopulation(object):
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
         
         still_changing = True
-        if mode == 'progress':
-            print 'iterating metapopulation...'
-            progress = pbar.ProgressBar(widgets=['generation: ', pbar.Counter()], maxval=n).start()
+        if progress is None:
+            widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
+            progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
         while still_changing and self.generation < n:
-            if mode == 'progress':
-                progress.update(self.generation+1)
+        #~ for i in progress(range(self.generation, n)):
+            #~ if not still_changing:
+                #~ break
             # data storage:
             if self.runstore != None:
                 if self.generation % step == 0:
@@ -499,12 +501,13 @@ class MetaPopulation(object):
             self.normalize()
             
             self.generation += 1
+            progress.update(self.generation)
             still_changing = utils.diff(self.freqs, previous) > thresh
         
         if self.runstore != None:   # store final state
             #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
             self.runstore.dump_data(self)
         
-        if mode == 'progress':
-            progress.finish()
         self.eq = not still_changing
+        # return ProgressBar instance so we can reuse it for further running:
+        return progress
