@@ -431,7 +431,7 @@ class MetaPopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, mode=None, progress=None):
+    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, progress=None):
         """
         Simulate next `n` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
@@ -451,6 +451,8 @@ class MetaPopulation(object):
                 generations has become smaller than `thresh`.
             runstore: storage.runstore instance
                 if provided, simulation run is stored in datafile
+            progress: progressbar.ProgressBar instance
+                if none is provided, a new one is created
         """
         M = weights['migration']
         VS = weights['viability_selection']
