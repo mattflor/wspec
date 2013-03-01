@@ -74,7 +74,7 @@ def plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
                 ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)
     plt.show()
 
-def stacked_bars(sums, loci, alleles):
+def stacked_bars(sums, loci, alleles, figsize=[18,5]):
     """
     Args:
         sums: list of ndarrays
@@ -103,7 +103,7 @@ def stacked_bars(sums, loci, alleles):
     cumdata = np.cumsum(data, axis=2)   # we need this for stacking the bars
     
     # prepare figure and axes and plot:
-    fig = plt.figure(figsize=[18,5])
+    fig = plt.figure(figsize=figsize)
     fig.subplots_adjust(wspace=0.1, left=0.04,right=0.92,top=0.91,bottom=0.11)
     barcolors = npr.random((nloci,maxalleles,3))  # for now, random colors
     for i,pop in enumerate(pops):
