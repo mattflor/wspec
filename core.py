@@ -506,10 +506,14 @@ class MetaPopulation(object):
             progress.update(self.generation)
             still_changing = utils.diff(self.freqs, previous) > thresh
         
-        if self.runstore != None:   # store final state
-            #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
-            self.runstore.dump_data(self)
-        
         self.eq = not still_changing
+        if self.runstore != None:   # store final state
+            self.runstore.dump_data(self)
+            if self.eq:
+                state_desc = 'eq'
+            else:
+                state_desc = 'max'
+            self.runstore.record_special_state(self.generation, state_desc)
+            
         # return ProgressBar instance so we can reuse it for further running:
         return progress
