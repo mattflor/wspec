@@ -25,7 +25,8 @@ def empty_current():
          }
     return d
 
-special_dtype = np.dtype([('generation', 'i'), ('state', 'S64')])
+special_dtype = np.dtype([('generation', 'i'), ('description', 'S64')])
+par_dtype = np.dtype([('name', 'S16'), ('value', 'f')])
 
 class RunStore(object):
     def __init__(self, filename, snum=None, rnum=None):
@@ -120,15 +121,20 @@ class RunStore(object):
         rname = 'run_{0}'.format(rnum)
         if rname not in scenario:
             run = scenario.create_group(rname)
-            # setting simulation parameters as attributes:
-            for p,v in pars.items():
-                run.attrs[p] = v
+            # timestamp as attribute:
             run.attrs['timestamp'] = timestamp()
+            # parameters:
+            npars = len(pars)   # number of paramters
+            parameters = run.create_dataset('parameters', (npars,), par_dtype)
+            i = 0
+            for name,value in sorted(pars.items()):
+                parameters[i] = (name, value)
+                i += 1
             # integer counter:
             self.counter = run.create_dataset('counter', (), 'i')
             # resizable generation array:
             gens = run.create_dataset('generations', (init_len,), 'i', maxshape=(None,))
-            special_gens = run.create_dataset('special states', (1,), special_dtype, maxshape=(None,))
+            special_states = run.create_dataset('special states', (1,), special_dtype, maxshape=(None,))
             # resizable frequencies array
             freqs = run.create_dataset('frequencies', (init_len,)+fshape, 'f', maxshape=(None,)+fshape)
             npops = scenario.attrs['npops']
@@ -310,13 +316,18 @@ class RunStore(object):
                 generation
             description: str (max length: 64)
                 usually one of the following state descriptions
-                start        - start state
-                eq           - an equilibrium has been reached
-                intro allele - introduction of an allele
-                max          - the maximum number of generations has been reached
+                `start`    - start state
+                `eq`       - an equilibrium has been reached
+                `intro`    - introduction of an allele
+                `max`      - the maximum number of generations has been reached
         """
-        special = np.array([g, description], dtype=special_dtype)
-        self.current['run']['special states'][0] = special
+        special_states = self.current['run']['special states']
+        # append new state:
+        special_states[-1] = (g, description)
+        # resize to make room for next state:
+        l = len(special_states)
+        special_states.resize( (l+1,) )
+        
     
     def plot_sums(self, figsize=[8,11], snum=None, rnum=None, **kwargs):
         if (snum is not None) and (rnum is not None):
