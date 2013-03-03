@@ -6,12 +6,22 @@ from matplotlib.font_manager import FontProperties
 #~ from matplotlib import rc
 #~ rc('text', usetex=True)
 #~ rc('font', family='serif')
-from mpltools import style
+from mpltools import style, color
 style.use('ggplot')
 
 
 legend_font = FontProperties()
-legend_font.set_size('small') 
+legend_font.set_size('small')
+
+cmaps = []
+cmaps.append( color.LinearColormap('cmap1', [(1,1,1), (0.8, 0,   0  )]) )
+cmaps.append( color.LinearColormap('cmap2', [(1,1,1), (0,   0.8, 0  )]) )
+cmaps.append( color.LinearColormap('cmap3', [(1,1,1), (0,   0,   0.8)]) )
+cmaps.append( color.LinearColormap('cmap4', [(1,1,1), (0.8, 0.8, 0  )]) )
+cmaps.append( color.LinearColormap('cmap5', [(1,1,1), (0.8, 0,   0.8)]) )
+cmaps.append( color.LinearColormap('cmap6', [(1,1,1), (0  , 0.8, 0.8)]) )
+cmaps.append( color.LinearColormap('cmap7', [(1,1,1), (0.8, 0.8, 0.8)]) )
+ncmaps = len(cmaps)
 
 def create_figs(pops, loci, figsize=[5,7]):
     """
@@ -74,7 +84,7 @@ def plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
                 ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)   # legend outside of axes at the right
     plt.show()
 
-def stacked_bars(sums, loci, alleles, figsize=[18,5]):
+def stacked_bars(sums, loci, alleles, figsize=[18,5], cmap=plt.cm.Dark2):
     """
     Args:
         sums: list of ndarrays
@@ -89,7 +99,8 @@ def stacked_bars(sums, loci, alleles, figsize=[18,5]):
     npops = len(pops)
     alleles = alleles[1:]
     nalleles = utils.list_shape(alleles)
-    maxalleles = max(nalleles)
+    ntotal = np.sum(nalleles)   # total number of alleles
+    maxalleles = max(nalleles)  # maximum number of alleles at one locus
     loci = loci[1:]     # we don't need the population locus name
     nloci = len(loci)
     width = 1.     # bar width
@@ -105,7 +116,6 @@ def stacked_bars(sums, loci, alleles, figsize=[18,5]):
     # prepare figure and axes and plot:
     fig = plt.figure(figsize=figsize)
     fig.subplots_adjust(wspace=0.1, left=0.04,right=0.92,top=0.91,bottom=0.11)
-    barcolors = npr.random((nloci,maxalleles,3))  # for now, random colors
     for i,pop in enumerate(pops):
         ax = fig.add_subplot(1,npops,i+1)
         ax.set_title(pop)
@@ -114,19 +124,23 @@ def stacked_bars(sums, loci, alleles, figsize=[18,5]):
         ax.set_xticks(xpos+width/2.)
         ax.set_xticklabels(loci)
         for j,loc in enumerate(loci):
+            barcmap = cmaps[ j%ncmaps ]
             for k,allele in enumerate(alleles[j]):
+                n = nalleles[j]     # number of alleles at the locus
+                c = barcmap( (k+1.)/(n+1) )
                 if k==0:
-                    ax.bar(xpos[j], data[i,j,k], width, color=tuple(barcolors[j,k]), label=allele)
+                    ax.bar(xpos[j], data[i,j,k], width, color=c, label=allele)
                 else:
-                    ax.bar(xpos[j], data[i,j,k], width, color=tuple(barcolors[j,k]), bottom=cumdata[i,j,k-1], label=allele)
+                    ax.bar(xpos[j], data[i,j,k], width, color=c, bottom=cumdata[i,j,k-1], label=allele)
         ax.set_ylim(0,1)
         if i==npops-1:
             leg = plt.legend(loc="upper left", bbox_to_anchor=(1.01, 1.01), prop=legend_font)
             leg.get_frame().set_alpha(0) # this will make the box totally transparent
             leg.get_frame().set_edgecolor('white')
+            handles, labels = ax.get_legend_handles_labels()
     fig.autofmt_xdate()
     plt.show()
-    return fig
+    return fig, handles, labels
 
 #~ class stripchart(object):
     #~ def __init__(self, labels):
