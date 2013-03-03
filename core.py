@@ -469,9 +469,6 @@ class MetaPopulation(object):
             widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
             progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
         while still_changing and self.generation < n:
-        #~ for i in progress(range(self.generation, n)):
-            #~ if not still_changing:
-                #~ break
             # data storage:
             if self.runstore != None:
                 if self.generation % step == 0:
@@ -514,6 +511,6 @@ class MetaPopulation(object):
             else:
                 state_desc = 'max'
             self.runstore.record_special_state(self.generation, state_desc)
-            
+
         # return ProgressBar instance so we can reuse it for further running:
         return progress
