@@ -6,6 +6,7 @@ import pandas as pd
 from pylab import show, close          # pyreport needs this to find figures
 import core, storage
 import visualization as viz
+import matplotlib.pyplot as plt
 import utilities as utils
 for mod in [core,storage,utils,viz]:
     reload(mod)
@@ -274,10 +275,10 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
-rstore = storage.RunStore('/extra/flor/data/simdata.h5')
-#~ rstore = storage.Runstore('simdata2.h5')
-snum = 5
-rnum = 1
+snum = 2
+rstore = storage.RunStore('/extra/flor/data/scenario{0}.h5'.format(snum))
+#~ rstore = storage.RunStore('/extra/flor/data/simdata.h5')
+rnum = 3
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum)
@@ -289,8 +290,8 @@ rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 mode = None
 #~ mode = 'report'      # create a report with pyreport
 
-n = 50
-step = 10
+n = 10
+step = 3
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -300,6 +301,7 @@ startfreqs[1,0,0,0,0,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
 startfreqs[2,0,0,0,0,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
 startfreqs[3,1,1,1,1,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
+rstore.record_special_state(metapop.generation, 'start')
 print metapop
 
 ##! Migration-selection equilibrium
@@ -309,8 +311,10 @@ print metapop
 
 ##! Introduction of preference allele P1
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.introduce_allele('pop3', 'P1', intro_freq=intro, advance_generation_count=True)
+intro_allele = 'P1'
+metapop.introduce_allele('pop3', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
+rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 
 ##! Equilibrium
@@ -320,8 +324,10 @@ print metapop
 
 ##! Introduction of preference allele P2
 ##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.introduce_allele('pop4', 'P2', intro_freq=intro, advance_generation_count=True)
+intro_allele = 'P2'
+metapop.introduce_allele('pop4', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
+rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 
 ##! Final state
@@ -355,8 +361,8 @@ rstore.flush()
 #! Plots
 #!======================================================================
 try:
-    figs = rstore.plot_sums()
-    bars = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles)
+    #~ figs = rstore.plot_sums()
+    bars, handles, labels = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles, cmap=plt.cm.jet)
 except:
     raise
 if mode == 'report':
