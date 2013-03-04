@@ -329,7 +329,7 @@ class RunStore(object):
         special_states.resize( (l+1,) )
         
     
-    def plot_sums(self, figsize=[8,11], snum=None, rnum=None, **kwargs):
+    def plot_sums(self, figsize=[19,7], snum=None, rnum=None, **kwargs):
         if (snum is not None) and (rnum is not None):
             scenario = self.get_scenario(snum)
             run = self.get_run(rnum, snum)
@@ -341,15 +341,13 @@ class RunStore(object):
         else:
             raise KeyError, 'you must provide BOTH scenario and run number OR NEITHER of them'
         alleles = self.get_allele_list(snum=snum, with_pops=True)
-        pops = alleles[0]
-        alleles = alleles[1:]
-        loci = list(scenario['loci'][1:])
-        figs = viz.create_figs(pops, loci, figsize=figsize)
+        alleles = alleles[:]
+        loci = list(scenario['loci'][:])
         gens = run['generations'][:]
         sums = run['sums']
         c = run['counter'][()]
-        viz.plot_sums(gens, sums, c, loci, alleles, figs, lw=2, **kwargs)
-        return figs
+        fig = viz.plot_sums(gens, sums, c, loci, alleles, figsize=figsize, lw=3, **kwargs)
+        return fig
     
     #~ def plot_overview(self, figsize=[18,5]):
         #~ sums =
