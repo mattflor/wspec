@@ -3,10 +3,10 @@ sys.path.append(".")             # pyreport needs this to know where to import m
 import numpy as np
 import numpy.random as npr
 import pandas as pd
+import matplotlib.pyplot as plt
 from pylab import show, close          # pyreport needs this to find figures
 import core, storage
 import visualization as viz
-import matplotlib.pyplot as plt
 import utilities as utils
 for mod in [core,storage,utils,viz]:
     reload(mod)
@@ -127,7 +127,6 @@ print VS
 species_recognition = {'S1': {'all pops': ('A1-B1', pr_s1)}, \
                        'S2': {'all pops': ('A2-B2', pr_s2)}
                       }
-pprint.pprint(species_recognition)
 SR = core.PreferenceWeight(name='species recognition', \
                            axes=['population', 'female_recognition', 'male_backA', 'male_backB'], \
                            pref_desc = species_recognition, \
@@ -138,7 +137,7 @@ SR = core.PreferenceWeight(name='species recognition', \
                            pr_s2=rejection_probability_species2
                           )
 weights['dynamic_reproduction'] = [SR]
-print SR
+#~ print SR
 
 #! Trait preference
 #!----------------------------------------------------------------------
@@ -155,7 +154,7 @@ TP = core.PreferenceWeight(name='trait preference', \
                            pr_t2=rejection_probability_trait2
                           )
 weights['dynamic_reproduction'].append(TP)
-print TP
+#~ print TP
 
 #! Reproduction
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -210,7 +209,7 @@ print T
 #!----------------------------------------------------------------------
 #! Preference locus
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 PI = core.ReproductionWeight(name='preference inheritance', \
                              axes=['female_preference', 'male_preference', 'offspring_preference'], \
                              config=config, \
@@ -222,7 +221,7 @@ print PI
 
 #! Trait locus
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 TI = core.ReproductionWeight(name='trait inheritance', \
                              axes=['female_trait', 'male_trait', 'offspring_trait'], \
                              config=config, \
@@ -234,7 +233,7 @@ print TI
 
 #! Background locus A
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 AI = core.ReproductionWeight(name='background A inheritance', \
                              axes=['female_backA', 'male_backA', 'offspring_backA'], \
                              config=config, \
@@ -246,7 +245,7 @@ print AI
 
 #! Background locus B
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 BI = core.ReproductionWeight(name='background B inheritance', \
                              axes=['female_backB', 'male_backB', 'offspring_backB'], \
                              config=config, \
@@ -258,7 +257,7 @@ print BI
 
 #! Species recognition locus
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 SI = core.ReproductionWeight(name='species recognition inheritance', \
                              axes=['female_recognition', 'male_recognition', 'offspring_recognition'], \
                              config=config, \
@@ -276,12 +275,12 @@ weights['constant_reproduction'] = R_
 #! Simulation
 #!======================================================================
 snum = 2
-rstore = storage.RunStore('/extra/flor/data/scenario{0}.h5'.format(snum))
+rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
 #~ rstore = storage.RunStore('/extra/flor/data/simdata.h5')
 rnum = 3
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
-try: rstore.select_scenario(snum)
+try: rstore.select_scenario(snum, verbose=False)
 except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
 try: rstore.remove_run(rnum, snum)
 except: pass
@@ -290,7 +289,7 @@ rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 mode = None
 #~ mode = 'report'      # create a report with pyreport
 
-n = 10
+n = 100
 step = 3
 
 #! Start frequencies
@@ -304,69 +303,80 @@ metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='met
 rstore.record_special_state(metapop.generation, 'start')
 print metapop
 
-##! Migration-selection equilibrium
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#! Migration-selection equilibrium
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
 print metapop
 
-##! Introduction of preference allele P1
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#! Introduction of preference allele P1
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 intro_allele = 'P1'
 metapop.introduce_allele('pop3', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
 rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 
-##! Equilibrium
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#! Equilibrium
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
 print metapop
 
-##! Introduction of preference allele P2
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#! Introduction of preference allele P2
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 intro_allele = 'P2'
 metapop.introduce_allele('pop4', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
 rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 
-##! Final state
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#! Final state
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
-progress_final = progress.finish(maxval=False, fdwrite=False)   # capture progress._format_line for printing at the very end
+# capture progress._format_line for printing at the very end:
+progress_final = progress.finish(maxval=False, fdwrite=False)
+if mode == 'report':
+    print 'Simulation run completed:'
+    print progress_final
+    print ' '
 print metapop
 
-
-##! Loci (sums)
-##!----------------------------------------------------------------------
+#! Loci (sums)
+#!----------------------------------------------------------------------
 print metapop.overview()
 
     
-##! Dynamic weights (final states)
-##!======================================================================
-##! Sexual selection (final)
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-##! Species recognition (final)
-##!----------------------------------------------------------------------
+#! Dynamic weights (final states)
+#!======================================================================
+
+#! Sexual selection (final)
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#! Species recognition (final)
+#!----------------------------------------------------------------------
 print SR
 
-##! Trait preference (final)
-##!----------------------------------------------------------------------
+#! Trait preference (final)
+#!----------------------------------------------------------------------
 print TP
 
-print
-print progress_final
+if not mode == 'report':
+    print 'Simulation run completed:'
+    print progress_final
 rstore.flush()
 
 #! Plots
 #!======================================================================
-try:
-    #~ figs = rstore.plot_sums()
-    bars, handles, labels = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles, cmap=plt.cm.jet)
-except:
-    raise
-if mode == 'report':
-    show()
-    close('all')
+#! Time series
+#! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fig = rstore.plot_sums(figsize=[20,10])
+show()
+
+#! Final state
+#! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fig = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles)
+
+#~ if mode == 'report':
+show()
+close('all')
 
 rstore.close()
