@@ -63,12 +63,14 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,7], **kwargs):
     fig.subplots_adjust(left=0.05, right=0.9, bottom=0.1, top=0.93, hspace=0.2, wspace=0.05)
     fig.text(0.02, 0.49, 'frequency', fontsize=12, ha='center', va='center', rotation='vertical')
     fig.text(0.47, 0.04, 'generation', fontsize=12, ha='center', va='center', rotation='horizontal')
+    xmax = gens[c-1]
+    loclabel_xpos = xmax/100.
     for i,pop in enumerate(pops):
         for j,loc in enumerate(loci):
             sno = i+1+j*npops    # subplot number
             ax = fig.add_subplot(nloci, npops, sno)
             ax.grid(True)
-            ax.text(0.05, 1.01, loc, fontsize=8)
+            ax.text(loclabel_xpos, 1.05, loc, fontsize=8)
             if j == 0:
                 ax.set_title(pop)
             # default: neither x nor y ticklabels:
@@ -85,7 +87,7 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,7], **kwargs):
                 n = len(alleles[j])     # number of alleles at the locus
                 allelecol = locuscmap( (k+1.)/n )
                 ax.plot(gens[:c], sums[loc][:c,i,k], color=allelecol, label=allele, **kwargs)
-                ax.set_xlim(0,gens[c-1])
+                ax.set_xlim(0,xmax)
                 ax.set_ylim(-0.03,1.03)           # all data to plot are frequencies, i.e. between 0 and 1
             if i == npops-1:    # one legend is enough
                 leg = ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01))   # legend outside of axes at the right
