@@ -3,9 +3,6 @@ import numpy as np
 import numpy.random as npr
 import utilities as utils
 from matplotlib.font_manager import FontProperties
-#~ from matplotlib import rc
-#~ rc('text', usetex=True)
-#~ rc('font', family='serif')
 from mpltools import style, color
 style.use('ggplot')
 
@@ -23,7 +20,7 @@ cmaps.append( color.LinearColormap('cmap6', [(1,1,1), (0  , 0.8, 0.8)]) )
 cmaps.append( color.LinearColormap('cmap7', [(1,1,1), (0.8, 0.8, 0.8)]) )
 ncmaps = len(cmaps)
 
-def create_figs(pops, loci, figsize=[5,7]):
+def _create_figs(pops, loci, figsize=[5,7]):
     """
     Args:
         pops: list of strings
@@ -43,19 +40,60 @@ def create_figs(pops, loci, figsize=[5,7]):
         ax1 = fig.add_subplot(nloci,1,nloci)    # bottom subplot only one with xlabel
         plt.setp(ax1.get_xticklabels(), fontsize=8)
         plt.setp(ax1.get_yticklabels(), fontsize=8)
-        ax1.grid()
+        ax1.grid(True)
         ax1.set_xlabel('generation')
         ax1.text(0, 1.01, loci[-1], fontsize=8)  # 'subplot' title outside of axes (upper left)
         for j in range(nloci-1,0,-1):
             ax = fig.add_subplot(nloci,1,j)
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), fontsize=8)
-            ax.grid()
+            ax.grid(True)
             ax.text(0.01, 1.01, loci[j-1], fontsize=8)
-        plt.draw()
+        #~ plt.draw()
     return figs
 
-def plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
+def plot_sums(gens, sums, c, loci, alleles, figsize=[19,7], **kwargs):
+    pops = alleles[0]
+    alleles = alleles[1:]
+    if loci[0] == 'population':
+        loci = loci[1:]
+    npops = len(pops)   # -> subplot columns
+    nloci = len(loci)   # -> subplot rows
+    fig = plt.figure(figsize=figsize)
+    fig.subplots_adjust(left=0.05, right=0.9, bottom=0.1, top=0.93, hspace=0.2, wspace=0.05)
+    fig.text(0.02, 0.49, 'frequency', fontsize=12, ha='center', va='center', rotation='vertical')
+    fig.text(0.47, 0.04, 'generation', fontsize=12, ha='center', va='center', rotation='horizontal')
+    for i,pop in enumerate(pops):
+        for j,loc in enumerate(loci):
+            sno = i+1+j*npops    # subplot number
+            ax = fig.add_subplot(nloci, npops, sno)
+            ax.grid(True)
+            ax.text(0.05, 1.01, loc, fontsize=8)
+            if j == 0:
+                ax.set_title(pop)
+            # default: neither x nor y ticklabels:
+            plt.setp(ax.get_xticklabels(), visible=False)
+            plt.setp(ax.get_yticklabels(), visible=False)
+            locuscmap = cmaps[ j%ncmaps ]
+            if i == 0:      # y ticklabels only for pop1:
+                plt.setp(ax.get_yticklabels(), visible=True)
+                plt.setp(ax.get_yticklabels(), fontsize=8)
+            if j == nloci-1:    # x ticklabels only for last locus:
+                plt.setp(ax.get_xticklabels(), visible=True)
+                plt.setp(ax.get_xticklabels(), fontsize=8)
+            for k,allele in enumerate(alleles[j]):   # iterate through alleles at the locus/lines
+                n = len(alleles[j])     # number of alleles at the locus
+                allelecol = locuscmap( (k+1.)/n )
+                ax.plot(gens[:c], sums[loc][:c,i,k], color=allelecol, label=allele, **kwargs)
+                ax.set_xlim(0,gens[c-1])
+                ax.set_ylim(-0.03,1.03)           # all data to plot are frequencies, i.e. between 0 and 1
+            if i == npops-1:    # one legend is enough
+                leg = ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01))   # legend outside of axes at the right
+                leg.get_frame().set_alpha(0) # this will make the box totally transparent
+                leg.get_frame().set_edgecolor('white')
+    return fig
+
+def _plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
     """
     Args:
         gens: ndarray of ints
@@ -82,9 +120,34 @@ def plot_sums(gens, sums, c, loci, alleles, figs, **kwargs):
                 ax.set_xlim(0,gens[c-1])
                 ax.set_ylim(0,1)           # all data to plot are frequencies, i.e. between 0 and 1
                 ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01), prop=legend_font)   # legend outside of axes at the right
-    plt.show()
+    #~ plt.show()
+    return figs
+    
+def plot_sums_old(gens, sums, c, loci, alleles, figsize=[5,7], **kwargs):
+    """
+    Args:
+        gens: ndarray of ints
+            generations
+        sums: HDF5 group
+            the group must contain loci sums arrays
+        c: int
+            generation counter
+        loci: list of strings
+            list of locus names (INcluding `pops`!)
+        alleles: nested list of strings
+            allele names used for the legends (INcluding pop names)
+        figs: list of matplotlib figures
+            created by function `create_figs`
+    """
+    pops = alleles[0]
+    alleles = alleles[1:]
+    if loci[0] == 'population':
+        loci = loci[1:]
+    figs = _create_figs(pops, loci, figsize=figsize)
+    figs = _plot_sums(gens, sums, c, loci, alleles, figs=figs, **kwargs)
+    return figs
 
-def stacked_bars(sums, loci, alleles, figsize=[18,5], cmap=plt.cm.Dark2):
+def stacked_bars(sums, loci, alleles, figsize=[18,5]):
     """
     Args:
         sums: list of ndarrays
@@ -127,7 +190,7 @@ def stacked_bars(sums, loci, alleles, figsize=[18,5], cmap=plt.cm.Dark2):
             barcmap = cmaps[ j%ncmaps ]
             for k,allele in enumerate(alleles[j]):
                 n = nalleles[j]     # number of alleles at the locus
-                c = barcmap( (k+1.)/(n+1) )
+                c = barcmap( (k+1.)/n )
                 if k==0:
                     ax.bar(xpos[j], data[i,j,k], width, color=c, label=allele)
                 else:
@@ -137,8 +200,8 @@ def stacked_bars(sums, loci, alleles, figsize=[18,5], cmap=plt.cm.Dark2):
             leg = plt.legend(loc="upper left", bbox_to_anchor=(1.01, 1.01), prop=legend_font)
             leg.get_frame().set_alpha(0) # this will make the box totally transparent
             leg.get_frame().set_edgecolor('white')
-    fig.autofmt_xdate()
-    plt.show()
+    fig.autofmt_xdate()    # automatic label rotation
+    #~ plt.show()
     return fig
     
 #~ class stripchart(object):
