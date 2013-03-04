@@ -6,6 +6,7 @@
 .. moduleauthor:: Matthias Flor <matthias.c.flor@gmail.com>
 
 """
+import sys
 import numpy as np
 import pandas as pd
 import utilities as utils
@@ -201,7 +202,6 @@ class PreferenceWeight(ReproductionWeight):
                 cueidx = tuple( [config['ADICT'][c][1] for c in cues] )   # get cue allele indexes
                 preferences.append( ((popidx,prefidx)+cueidx, pr) ) # tuple of all indexes together (as a tuple) and the rejection probability
         self.preferences = preferences
-        print "init {0}: {1}".format(self.name, preferences)
     
     def calculate(self, x):
         """
@@ -467,7 +467,7 @@ class MetaPopulation(object):
         still_changing = True
         if progress is None:
             widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
-            progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
+            progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval! , fd=sys.stdout
         while still_changing and self.generation < n:
             # data storage:
             if self.runstore != None:
