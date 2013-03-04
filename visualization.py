@@ -137,11 +137,10 @@ def stacked_bars(sums, loci, alleles, figsize=[18,5], cmap=plt.cm.Dark2):
             leg = plt.legend(loc="upper left", bbox_to_anchor=(1.01, 1.01), prop=legend_font)
             leg.get_frame().set_alpha(0) # this will make the box totally transparent
             leg.get_frame().set_edgecolor('white')
-            handles, labels = ax.get_legend_handles_labels()
     fig.autofmt_xdate()
     plt.show()
-    return fig, handles, labels
-
+    return fig
+    
 #~ class stripchart(object):
     #~ def __init__(self, labels):
         #~ """
