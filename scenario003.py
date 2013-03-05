@@ -1,4 +1,4 @@
-import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pprint
+import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pprint, datetime
 sys.path.append(".")             # pyreport needs this to know where to import modules from
 import numpy as np
 import numpy.random as npr
@@ -274,10 +274,11 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
-snum = 2
-rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
+snum = 3
+#~ rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
+rstore = storage.RunStore('scenario_{0}.h5'.format(snum))
 #~ rstore = storage.RunStore('/extra/flor/data/simdata.h5')
-rnum = 3
+rnum = 1
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum, verbose=False)
@@ -289,7 +290,7 @@ rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 mode = None
 #~ mode = 'report'      # create a report with pyreport
 
-n = 100
+n = 10
 step = 3
 
 #! Start frequencies
@@ -299,6 +300,7 @@ startfreqs[0,0,0,0,0,0,0] = 1.                   # pop1-A1-B1-S1-T1-P0-U
 startfreqs[1,0,0,0,0,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
 startfreqs[2,0,0,0,0,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
 startfreqs[3,1,1,1,1,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
+starttime = time.time()
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
 rstore.record_special_state(metapop.generation, 'start')
 print metapop
@@ -333,10 +335,13 @@ print metapop
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
 # capture progress._format_line for printing at the very end:
-progress_final = progress.finish(maxval=False, fdwrite=False)
+#~ progress_final = progress.finish(maxval=False, fdwrite=False)
 if mode == 'report':
     print 'Simulation run completed:'
-    print progress_final
+    #~ print progress_final
+    seconds = time.time()-starttime
+    hhmmss = str(datetime.timedelta(seconds=int(seconds)))
+    print 'Generation: {0} (Elapsed time: {1})'.format(metapop.generation, hhmmss)
     print ' '
 print metapop
 
@@ -361,7 +366,10 @@ print TP
 
 if not mode == 'report':
     print 'Simulation run completed:'
-    print progress_final
+    #~ print progress_final
+    seconds = time.time()-starttime
+    hhmmss = str(datetime.timedelta(seconds=int(seconds)))
+    print 'Generation: {0} (Elapsed time: {1})'.format(metapop.generation, hhmmss)
 rstore.flush()
 
 #! Plots
@@ -377,6 +385,6 @@ fig = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles)
 
 #~ if mode == 'report':
 show()
-close('all')
+#~ close('all')
 
-rstore.close()
+#~ rstore.close()
