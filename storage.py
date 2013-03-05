@@ -249,6 +249,13 @@ class RunStore(object):
     def get_latest_generation(self):
         c = self.get_count()
         return self.current['gens'][c-1]
+        
+    def get_closest_generation(self, g):
+        """
+        Out of all stored generations, returns the one closest to `g`.
+        """
+        c = self.get_count()
+        return np.argmin(np.abs(self.current['gens'][:c] - g))
     
     def get_allele_list(self, snum=None, with_pops=False):
         """
@@ -349,11 +356,15 @@ class RunStore(object):
         fig = viz.plot_sums(gens, sums, c, loci, alleles, figsize=figsize, lw=3, **kwargs)
         return fig
     
-    #~ def plot_overview(self, figsize=[18,5]):
-        #~ sums =
-        #~ loci = self.loci[:]
-        #~ alleles = self.get_allele_list(with_pops=True)
-        #~ viz.stacked_bars(metapop.all_sums(), loci, alleles)
+    def plot_overview(self, generation, figsize=[18,5]):
+        sums = None
+        loci = self.loci[:]
+        alleles = self.get_allele_list(with_pops=True)
+        fig = viz.stacked_bars(sums, loci, alleles, figsize=[15,8])
+        return fig
+
+    def get_sums(self, generation):
+        
 
 def get_frequencies(g, filename, snum, rnum):
     with h5py.File(filename, 'r') as df:    # read-only

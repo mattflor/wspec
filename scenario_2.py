@@ -1,37 +1,20 @@
-import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pprint
+import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pprint, datetime
 sys.path.append(".")             # pyreport needs this to know where to import modules from
 import numpy as np
 import numpy.random as npr
 import pandas as pd
-from pylab import show          # pyreport needs this to find figures
-
-import core, storage, visualization
+import matplotlib.pyplot as plt
+from pylab import show, close          # pyreport needs this to find figures
+import core, storage
+import visualization as viz
 import utilities as utils
-for mod in [core,storage,utils]:
+for mod in [core,storage,utils,viz]:
     reload(mod)
-
-
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
-report = False                   # set this to True if running script through pyreport (vertical subplots)
-scenarioname='scenario04_01'    #str(os.path.splitext(__file__)[0])
 
-def load_sim(filename):
-    """
-    Load simulation data for further interactive work.    
-    """
-    tar = tarfile.open(filename+'.tar', 'r')
-    tar.extractall()
-    tar.close()
-    simfile = os.path.join(filename, 'simulation.gz')
-    df = gzip.open(simfile, 'rb')
-    config = cPickle.load(df)
-    parameters = cPickle.load(df)
-    weights = cPickle.load(df)
-    frequencies = cPickle.load(df)
-    df.close()
-    return dict(config=config, parameters=parameters, weights=weights, frequencies=frequencies)
 
 #! .. contents:: :depth: 5
+
 #!
 #! .. sectnum:: :depth: 5
 #!
@@ -56,19 +39,19 @@ for i,loc in enumerate(LOCI):
 #! Parameters
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 migration_rate = m = 0.02           # symmetric migration!
-selection_coefficient = s = 1.     # T1 in pop1, T2 in pop2
+selection_coefficient = s = 1.      # T1 in pop1, T2 in pop2, etc.
 ci_level = l = 0.9                  # CI level
 fecundity_reduction = f = 0.        # fecundity reduction in infected females
 transmission_rate = t = 0.87        # transmission of Wolbachia
 transition_probability = pt = 0.95   # probability of transition into another mating round
 rejection_probability_species1 = pr_s1 = 0.7
 rejection_probability_species2 = pr_s2 = 0.9
-rejection_probability_trait1 = pr_t1 = 1.
-rejection_probability_trait2 = pr_t2 = 1.    # probability to reject a non-preferred male
+rejection_probability_trait3 = pr_t3 = 1.
+rejection_probability_trait4 = pr_t4 = 1.    # probability to reject a non-preferred male
 hybrid_male_sterility = h = 1.
 introduction_frequency = intro = 0.05        # introduction frequency of preference mutant allele
 threshold = 5e-3                   # equilibrium threshold
-parameters = dict(m=m, s=s, lCI=l, f=f, t=t, pt=pt, pr_s1=pr_s1, pr_s2=pr_s2, pr_t1=pr_t1, pr_t2=pr_t2, intro=intro, threshold=threshold)           # dictionary for storing simulation
+parameters = dict(m=m, s=s, lCI=l, f=f, t=t, pt=pt, pr_s1=pr_s1, pr_s2=pr_s2, pr_t3=pr_t3, pr_t4=pr_t4, intro=intro, threshold=threshold)           # dictionary for storing simulation
 par_width = len(max(parameters.keys(), key=len))
 for p,v in sorted(parameters.items()):
     print "%-*s  :\t%s" % (par_width, p, v)
@@ -121,10 +104,10 @@ print M
 
 #! Viability selection
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-viab = np.array([[1+s,      1,      1,      1], \
-                 [  1,    1+s,      1,      1], \
-                 [  1,      1,    1+s,      1], \
-                 [  1,      1,      1,    1+s]], float)
+viab = np.array([[ 1+s,    1,    1,    1  ], \
+                 [   1,  1+s,    1,    1  ], \
+                 [   1,    1,  1+s,    1  ], \
+                 [   1,    1,    1,  1+s  ]], float)
 VS = core.ViabilityWeight(name='viability selection', \
                           axes=['population','trait'], \
                           config=config, \
@@ -144,7 +127,6 @@ print VS
 species_recognition = {'S1': {'all pops': ('A1-B1', pr_s1)}, \
                        'S2': {'all pops': ('A2-B2', pr_s2)}
                       }
-pprint.pprint(species_recognition)
 SR = core.PreferenceWeight(name='species recognition', \
                            axes=['population', 'female_recognition', 'male_backA', 'male_backB'], \
                            pref_desc = species_recognition, \
@@ -155,12 +137,12 @@ SR = core.PreferenceWeight(name='species recognition', \
                            pr_s2=rejection_probability_species2
                           )
 weights['dynamic_reproduction'] = [SR]
-print SR
+#~ print SR
 
 #! Trait preference
 #!----------------------------------------------------------------------
-trait_preferences = {'P1': {'all pops': ('T3', pr_t1)}, \
-                     'P2': {'all pops': ('T4', pr_t2)}
+trait_preferences = {'P1': {'all pops': ('T3', pr_t3)}, \
+                     'P2': {'all pops': ('T4', pr_t4)}
                     }
 TP = core.PreferenceWeight(name='trait preference', \
                            axes=['population', 'female_preference', 'male_trait'], \
@@ -168,11 +150,11 @@ TP = core.PreferenceWeight(name='trait preference', \
                            config=config, \
                            unstack_levels=[2], \
                            pt=transition_probability, \
-                           pr_t1=rejection_probability_trait1,
-                           pr_t2=rejection_probability_trait2
+                           pr_t1=rejection_probability_trait3,
+                           pr_t2=rejection_probability_trait4
                           )
 weights['dynamic_reproduction'].append(TP)
-print TP
+#~ print TP
 
 #! Reproduction
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -227,61 +209,66 @@ print T
 #!----------------------------------------------------------------------
 #! Preference locus
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 PI = core.ReproductionWeight(name='preference inheritance', \
                              axes=['female_preference', 'male_preference', 'offspring_preference'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-PI.set( utils.nuclear_inheritance(3) )
+n_alleles = len(ALLELES[LOCI.index('preference')])
+PI.set( utils.nuclear_inheritance(n_alleles) )
 PI_ = PI.extended()
 print PI
 
 #! Trait locus
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 TI = core.ReproductionWeight(name='trait inheritance', \
                              axes=['female_trait', 'male_trait', 'offspring_trait'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-TI.set( utils.nuclear_inheritance(4) )
+n_alleles = len(ALLELES[LOCI.index('trait')])
+TI.set( utils.nuclear_inheritance(n_alleles) )
 TI_ = TI.extended()
 print TI
 
 #! Background locus A
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 AI = core.ReproductionWeight(name='background A inheritance', \
                              axes=['female_backA', 'male_backA', 'offspring_backA'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-AI.set( utils.nuclear_inheritance(2) )
+n_alleles = len(ALLELES[LOCI.index('backA')])
+AI.set( utils.nuclear_inheritance(n_alleles) )
 AI_ = AI.extended()
 print AI
 
 #! Background locus B
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 BI = core.ReproductionWeight(name='background B inheritance', \
                              axes=['female_backB', 'male_backB', 'offspring_backB'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-BI.set( utils.nuclear_inheritance(2) )
+n_alleles = len(ALLELES[LOCI.index('backB')])
+BI.set( utils.nuclear_inheritance(n_alleles) )
 BI_ = BI.extended()
 print BI
 
 #! Species recognition locus
 #!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
 SI = core.ReproductionWeight(name='species recognition inheritance', \
                              axes=['female_recognition', 'male_recognition', 'offspring_recognition'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-SI.set( utils.nuclear_inheritance(2) )
+n_alleles = len(ALLELES[LOCI.index('recognition')])
+SI.set( utils.nuclear_inheritance(n_alleles) )
 SI_ = SI.extended()
 print SI
 
@@ -292,22 +279,24 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
-#~ rstore = storage.runstore('/extra/flor/data/simdata.h5')
-rstore = storage.Runstore('simdata.h5')
-snum = 1
+snum = 2
+#~ rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
+rstore = storage.RunStore('scenario_{0}.h5'.format(snum))
+#~ rstore = storage.RunStore('/extra/flor/data/simdata.h5')
 rnum = 1
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
-try: rstore.select_scenario(snum)
+try: rstore.select_scenario(snum, verbose=False)
 except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
-try: rstore.remove_run(rnum)
+try: rstore.remove_run(rnum, snum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
+mode = None
+#~ mode = 'report'      # create a report with pyreport
+
 n = 10000
 step = 10
-#~ GENS = []
-#~ SUMS = []            # store loci sums
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -316,75 +305,91 @@ startfreqs[0,0,0,0,0,0,0] = 1.                   # pop1-A1-B1-S1-T1-P0-U
 startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
 startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
 startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
+starttime = time.time()
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
-#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
-#~ rstore.dump_data(metapop)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
+rstore.record_special_state(metapop.generation, 'start')
 print metapop
 
-##! Migration-selection equilibrium
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
+#! Migration-selection equilibrium
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
 print metapop
 
-##! Introduction of preference allele P1
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.introduce_allele('pop3', 'P1', intro_freq=intro, advance_generation_count=True)
-#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
+#! Introduction of preference allele P1
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+intro_allele = 'P1'
+metapop.introduce_allele('pop3', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
-#~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
+rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 
-##! Equilibrium
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
+#! Equilibrium
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
 print metapop
 
-##! Introduction of preference allele P2
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.introduce_allele('pop4', 'P2', intro_freq=intro, advance_generation_count=True)
-#~ rstore.dump_data(metapop.generation, metapop.freqs, metapop.all_sums())
+#! Introduction of preference allele P2
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+intro_allele = 'P2'
+metapop.introduce_allele('pop4', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
-#~ metapop.introduce_allele('pop4', 'P2', intro_freq=intro)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
+rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 
-##! Final state
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
-#~ GENS.append( metapop.generation )
-#~ SUMS.append( metapop.all_sums() )
+#! Final state
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
+# capture progress._format_line for printing at the very end:
+#~ progress_final = progress.finish(maxval=False, fdwrite=False)
+if mode == 'report':
+    print 'Simulation run completed:'
+    #~ print progress_final
+    seconds = time.time()-starttime
+    hhmmss = str(datetime.timedelta(seconds=int(seconds)))
+    print 'Generation: {0} (Elapsed time: {1})'.format(metapop.generation, hhmmss)
+    print ' '
 print metapop
 
-
-##! Loci (sums)
-##!----------------------------------------------------------------------
+#! Loci (sums)
+#!----------------------------------------------------------------------
 print metapop.overview()
 
     
-##! Dynamic weights (final states)
-##!======================================================================
-##! Sexual selection (final)
-##!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-##! Species recognition (final)
-##!----------------------------------------------------------------------
+#! Dynamic weights (final states)
+#!======================================================================
+
+#! Sexual selection (final)
+#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#! Species recognition (final)
+#!----------------------------------------------------------------------
 print SR
 
-##! Trait preference (final)
-##!----------------------------------------------------------------------
+#! Trait preference (final)
+#!----------------------------------------------------------------------
 print TP
 
-##~ #! Chart
-##~ #!======================================================================
-##~ show()
-##~ 
-##~ store_sim()
+if not mode == 'report':
+    print 'Simulation run completed:'
+    #~ print progress_final
+    seconds = time.time()-starttime
+    hhmmss = str(datetime.timedelta(seconds=int(seconds)))
+    print 'Generation: {0} (Elapsed Time: {1})'.format(metapop.generation, hhmmss)
+rstore.flush()
+
+#! Plots
+#!======================================================================
+#! Time series
+#! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fig = rstore.plot_sums(figsize=[20,10])
+show()
+
+#! Final state
+#! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+fig = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles)
+
+#~ if mode == 'report':
+show()
+#~ close('all')
+
 rstore.close()
