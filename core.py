@@ -230,6 +230,20 @@ class PreferenceWeight(ReproductionWeight):
                 #~ self.array[pop,sno,ano,bno] = tmp
         #~ self.array = np.nan_to_num(self.array)
 
+class DummyProgressBar(object):
+    def update(self, val):
+        pass
+    def finish(self):
+        pass
+    
+def generate_progressbar(progress_type='real'):
+    if progress_type == 'real':
+        widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
+        return pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
+    elif progress_type == 'dummy':
+        return DummyProgressBar()
+    else:
+        raise TypeError, "progress_type `{0}` unknown; use `real` or `dummy` instead".format(progress_type)
 
 class MetaPopulation(object):
     def __init__(self, frequencies, config, generation=0, name='metapopulation', eq='undetermined'):
@@ -431,7 +445,7 @@ class MetaPopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, progress=None):
+    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, progress=True):
         """
         Simulate next `n` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
@@ -465,9 +479,16 @@ class MetaPopulation(object):
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
         
         still_changing = True
-        if progress is None:
-            widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
-            progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval! , fd=sys.stdout
+        if isinstance(progress, (pbar.ProgressBar, DummyProgressBar)):
+            pass   # reuse progressbar
+        elif progress is False:
+            progress = generate_progressbar('dummy')
+        elif progress is True:
+            progress = generate_progressbar('real')
+            #~ widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
+            #~ progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval! , fd=sys.stdout
+        else:
+            raise TypeError, "`progress` must be True, False, or an existing progressbar instance"
         while still_changing and self.generation < n:
             # data storage:
             if self.runstore != None:
