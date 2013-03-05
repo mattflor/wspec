@@ -6,7 +6,6 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 import colorbrewer as cb
 from mpltools import color
-#~ style.use('ggplot')
 
 legend_font = FontProperties()
 legend_font.set_size('small')
@@ -56,7 +55,6 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,8], **kwargs):
             # default: neither x nor y ticklabels:
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), visible=False)
-            #~ locuscmap = cmaps[ j%ncmaps ]
             n = len(alleles[j])     # number of alleles at the locus
             name = color_scheme_names[j]
             loc_scheme = color_schemes[name][max(4,n)]     # color schemes should have at least 4 colors
@@ -121,9 +119,7 @@ def stacked_bars(sums, loci, alleles, figsize=[15,8]):
             n = len(alleles[j])     # number of alleles at the locus
             name = color_scheme_names[j]
             loc_scheme = color_schemes[name][max(4,n)]
-            #~ barcmap = cmaps[ j%ncmaps ]
             for k,allele in enumerate(alleles[j]):
-                #~ n = ashape[j]     # number of alleles at the locus
                 allele_color = to_rgb(loc_scheme[k])
                 if k==0:
                     ax.bar(xpos[j], data[i,j,k], width, color=allele_color, label=allele)
@@ -131,7 +127,6 @@ def stacked_bars(sums, loci, alleles, figsize=[15,8]):
                     ax.bar(xpos[j], data[i,j,k], width, color=allele_color, bottom=cumdata[i,j,k-1], label=allele)
         ax.set_ylim(0,1)
         if i==npops-1:
-            #~ leg = plt.legend()
             handles, labels = ax.get_legend_handles_labels()
             cumshape = np.cumsum(ashape)[::-1]
             for idx in cumshape:
@@ -141,5 +136,4 @@ def stacked_bars(sums, loci, alleles, figsize=[15,8]):
             leg.get_frame().set_alpha(0) # this will make the box totally transparent
             leg.get_frame().set_edgecolor('white')
     fig.autofmt_xdate()    # automatic label rotation
-    #~ plt.show()
     return fig
