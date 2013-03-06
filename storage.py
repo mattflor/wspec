@@ -197,7 +197,7 @@ class RunStore(object):
             self.update_current(rnum=rnum, run=run,  gens=gens, freqs=freqs, fshape=fshape, sums=sums)
             self.counter = run['counter']
             count = self.get_count()
-            generation = self.get_latest_generation()
+            generation = self.get_last_generation()
             self.update_current(count=count, generation=generation)
         else:
             if verbose:
@@ -230,7 +230,7 @@ class RunStore(object):
                 description = scenario['description'][()]
                 s += "\tdescription: {0}\n".format(description)
             if self.rnum is not None:
-                s += 'selected simulation run: {0}\n\tcount / generation: {1} / {2})\n\tfrequency shape: {3}\n]\n'.format(self.rnum, self.counter[()], self.get_latest_generation(), self.current['fshape'])
+                s += 'selected simulation run: {0}\n\tcount / generation: {1} / {2})\n\tfrequency shape: {3}\n]\n'.format(self.rnum, self.counter[()], self.get_last_generation(), self.current['fshape'])
             else:
                 s += 'no simulation run selected\n'
         else:
@@ -245,8 +245,12 @@ class RunStore(object):
     
     def get_count(self):
         return self.counter[()]
+        
+    def get_closest_count(self, g):
+        c = self.get_count()
+        return np.argmin(np.abs(self.current['gens'][:c] - g))
     
-    def get_latest_generation(self):
+    def get_last_generation(self):
         c = self.get_count()
         return self.current['gens'][c-1]
         
@@ -254,8 +258,8 @@ class RunStore(object):
         """
         Out of all stored generations, returns the one closest to `g`.
         """
-        c = self.get_count()
-        return np.argmin(np.abs(self.current['gens'][:c] - g))
+        closest = self.get_closest_count(g)
+        return self.current['gens'][closest]
     
     def get_allele_list(self, snum=None, with_pops=False):
         """
@@ -306,7 +310,7 @@ class RunStore(object):
             sums: list of ndarrays
                 list of locus sums
         """
-        if metapop.generation > 0 and metapop.generation <= self.get_latest_generation():   # dump data must not lie in the past
+        if metapop.generation > 0 and metapop.generation <= self.get_last_generation():   # dump data must not lie in the past
             pass
         else:
             c = self.get_count()
@@ -357,6 +361,7 @@ class RunStore(object):
         return fig
     
     def plot_overview(self, generation, figsize=[18,5]):
+        g = self.get_closest_generation(generation)
         sums = None
         loci = self.loci[:]
         alleles = self.get_allele_list(with_pops=True)
@@ -364,6 +369,8 @@ class RunStore(object):
         return fig
 
     def get_sums(self, generation):
+        g = self.get_closest_generation(generation)
+        sums = self.current['sums']
         
 
 def get_frequencies(g, filename, snum, rnum):
