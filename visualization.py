@@ -75,7 +75,7 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,8], **kwargs):
                 leg.get_frame().set_edgecolor('white')
     return fig
 
-def stacked_bars(sums, loci, alleles, figsize=[15,8]):
+def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
     """
     Args:
         sums: list of ndarrays
@@ -106,7 +106,10 @@ def stacked_bars(sums, loci, alleles, figsize=[15,8]):
     
     # prepare figure and axes and plot:
     fig = plt.figure(figsize=figsize)
-    fig.subplots_adjust(wspace=0.1, left=0.04,right=0.92,top=0.91,bottom=0.11)
+    if generation is not None:
+        fig.text(0.94, 0.02, 'Generation: {0}'.format(generation), fontsize=12, ha='right', va='bottom', rotation='horizontal')
+    fig.subplots_adjust(wspace=0.1, hspace=0.1, left=0.05, right=0.94, top=0.91, bottom=0.12)
+    #~ fig.subplots_adjust(bottom=0.3)
     for i,pop in enumerate(pops):
         ax = fig.add_subplot(1,npops,i+1)
         ax.grid(False)
@@ -136,4 +139,5 @@ def stacked_bars(sums, loci, alleles, figsize=[15,8]):
             leg.get_frame().set_alpha(0) # this will make the box totally transparent
             leg.get_frame().set_edgecolor('white')
     fig.autofmt_xdate()    # automatic label rotation
+    fig.subplots_adjust(bottom=0.12)  # we need to re-apply bottom spacing after label rotation!
     return fig
