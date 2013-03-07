@@ -274,7 +274,11 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
+<<<<<<< HEAD:scenario003.py
+snum = 3
+=======
 snum = 1
+>>>>>>> 7e2633c2ab0c1dc18d1c7b6d571df71285802b6e:scenario_1_old.py
 #~ rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
 rstore = storage.RunStore('scenario_{0}.h5'.format(snum))
 #~ rstore = storage.RunStore('/extra/flor/data/simdata.h5')
@@ -290,8 +294,13 @@ rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 mode = None
 #~ mode = 'report'      # create a report with pyreport
 
+<<<<<<< HEAD:scenario003.py
+n = 10
+step = 3
+=======
 n = 10000
 step = 10
+>>>>>>> 7e2633c2ab0c1dc18d1c7b6d571df71285802b6e:scenario_1_old.py
 
 #! Start frequencies
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -387,4 +396,4 @@ fig = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles)
 show()
 #~ close('all')
 
-rstore.close()
+#~ rstore.close()
