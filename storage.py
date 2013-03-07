@@ -107,12 +107,13 @@ class RunStore(object):
             scenario.attrs['timestamp'] = timestamp()
             if description is None:
                 description = 'no description available'
-                desc = scenario.create_dataset('description', (), h5py.special_dtype(vlen=str))
-                desc[()] = description
+            desc = scenario.create_dataset('description', (), h5py.special_dtype(vlen=str))
+            desc[()] = description
             self.update_current(snum=snum, scenario=scenario, loci=loci, alleles=alleles, description=description)
             self.reset_run()         # if a `run` was previously selected, it must be rest now to avoid inconsistencies
         else:
             raise KeyError('{0} already exists. You can select it by calling `select_scenario({1})`.'.format(sname,snum))
+        self.flush()
     
     def init_run(self, rnum, pars, fshape, init_len=100):
         scenario = self.current['scenario']
@@ -142,7 +143,7 @@ class RunStore(object):
             sums = run.create_group('sums')
             for i,loc in enumerate(scenario['loci'][1:]):
                 ds = run['sums'].create_dataset(loc, (init_len,npops,ashape[i+1]), 'f', maxshape=(None,npops,ashape[i+1]))   # create a dataset for each locus
-            self.update_current(rnum=rnum, run=run, gens=gens, freqs=freqs, fshape=fshape)
+            self.update_current(rnum=rnum, run=run, gens=gens, freqs=freqs, fshape=fshape, sums=sums)
         else:
             raise KeyError('`{0}` already exists. You can select it by calling `select_run({1})`.'.format(rname,rnum))
     
@@ -310,7 +311,9 @@ class RunStore(object):
             sums: list of ndarrays
                 list of locus sums
         """
-        if metapop.generation > 0 and metapop.generation <= self.get_last_generation():   # dump data must not lie in the past
+        if metapop.generation > 0 and metapop.generation <= self.get_last_generation():
+            # dump data must not lie in the past or
+            # have been stored already
             pass
         else:
             c = self.get_count()
@@ -338,20 +341,16 @@ class RunStore(object):
         # resize to make room for next state:
         l = len(special_states)
         special_states.resize( (l+1,) )
-        
     
-    def plot_sums(self, figsize=[19,7], snum=None, rnum=None, **kwargs):
-        if (snum is not None) and (rnum is not None):
-            scenario = self.get_scenario(snum)
-            run = self.get_run(rnum, snum)
-        elif (snum is None) and (rnum is None):
-            scenario = self.current['scenario']
-            snum = self.current['snum']
-            run = self.current['run']
-            rnum = self.current['rnum']
-        else:
-            raise KeyError, 'you must provide BOTH scenario and run number OR NEITHER of them'
-        alleles = self.get_allele_list(snum=snum, with_pops=True)
+    def get_special_states(self):
+        return self.current['run']['special states'][:-1]
+    
+    def get_current(self):
+        return self.current['scenario'], self.current['run']
+        
+    def plot_sums(self, figsize=[19,7], **kwargs):
+        scenario, run = self.get_current()
+        alleles = self.get_allele_list(with_pops=True)
         alleles = alleles[:]
         loci = list(scenario['loci'][:])
         gens = run['generations'][:]
@@ -360,17 +359,26 @@ class RunStore(object):
         fig = viz.plot_sums(gens, sums, c, loci, alleles, figsize=figsize, lw=3, **kwargs)
         return fig
     
-    def plot_overview(self, generation, figsize=[18,5]):
+    def plot_overview(self, generation, show_generation=True, figsize=[18,5]):
+        scenario, run = self.get_current()
         g = self.get_closest_generation(generation)
-        sums = None
-        loci = self.loci[:]
+        sums = self.get_sums(generation)
+        loci = list(scenario['loci'][:])
         alleles = self.get_allele_list(with_pops=True)
-        fig = viz.stacked_bars(sums, loci, alleles, figsize=[15,8])
+        if show_generation:
+            fig = viz.stacked_bars(sums, loci, alleles, generation=generation, figsize=figsize)
+        else:
+            fig = viz.stacked_bars(sums, loci, alleles, figsize=figsize)
         return fig
 
     def get_sums(self, generation):
-        g = self.get_closest_generation(generation)
-        sums = self.current['sums']
+        scenario, run = self.get_current()
+        c = self.get_closest_count(generation)
+        sums = run['sums']
+        result = []
+        for loc in scenario['loci'][1:]:
+            result.append(sums[loc][c])
+        return result
         
 
 def get_frequencies(g, filename, snum, rnum):
