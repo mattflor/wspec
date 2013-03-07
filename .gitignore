@@ -6,6 +6,7 @@
 *.ind
 *.out
 *.toc
+*.pdf
 
 # temporary and backup files:
 *~
