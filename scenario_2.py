@@ -43,7 +43,7 @@ selection_coefficient = s = 1.      # T1 in pop1, T2 in pop2, etc.
 ci_level = l = 0.9                  # CI level
 fecundity_reduction = f = 0.        # fecundity reduction in infected females
 transmission_rate = t = 0.87        # transmission of Wolbachia
-transition_probability = pt = 0.95   # probability of transition into another mating round
+transition_probability = pt = 0.9   # probability of transition into another mating round
 rejection_probability_species1 = pr_s1 = 0.7
 rejection_probability_species2 = pr_s2 = 0.9
 rejection_probability_trait3 = pr_t3 = 1.
@@ -122,6 +122,7 @@ print VS
 #! These weights are frequency-dependent. Their final states can be found
 #! in section `Dynamic weights (final states)`_.
 #!
+weights['dynamic_reproduction'] = []
 #! Species recognition (preference for background loci)
 #!----------------------------------------------------------------------
 species_recognition = {'S1': {'all pops': ('A1-B1', pr_s1)}, \
@@ -136,8 +137,8 @@ SR = core.PreferenceWeight(name='species recognition', \
                            pr_s1=rejection_probability_species1,
                            pr_s2=rejection_probability_species2
                           )
-weights['dynamic_reproduction'] = [SR]
-#~ print SR
+weights['dynamic_reproduction'].append( (SR, ['backA','backB']) )
+print SR
 
 #! Trait preference
 #!----------------------------------------------------------------------
@@ -153,8 +154,8 @@ TP = core.PreferenceWeight(name='trait preference', \
                            pr_t1=rejection_probability_trait3,
                            pr_t2=rejection_probability_trait4
                           )
-weights['dynamic_reproduction'].append(TP)
-#~ print TP
+weights['dynamic_reproduction'].append( (TP, ['trait']) )
+print TP
 
 #! Reproduction
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -279,26 +280,40 @@ weights['constant_reproduction'] = R_
     
 #! Simulation
 #!======================================================================
+desc = """
+- 4 populations, arranged like stepping stones linked by symmetrical migration
+- populations 1-3 representing uninfected D. sub.; pop.4 representing Wolbachia-infected D. rec. (initially)
+- a different trait adaptive in each population (T1 in pop.1, T2 in pop.2, T3 in pop.3, T4 in pop.4)
+- species have diverged at background loci A and B and a preference locus for these loci
+- hybrid males are fully sterile (A1-B2 and A2-B1)
+- after a new equilibrium has been reached, allele P1 (female preference for trait T3) is introduced in pop.3 and allele P2 (female preference for trait T4) is introduced in pop.4
+- simulation is over when the final equilibrium has been reached
+"""
 snum = 2
-#~ rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
-rstore = storage.RunStore('scenario_{0}.h5'.format(snum))
-#~ rstore = storage.RunStore('/extra/flor/data/simdata.h5')
-rnum = 1
+rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
+rnum = 7
 #~ rstore.select_scenario(snum)
 #~ rstore.select_run(rnum)
 try: rstore.select_scenario(snum, verbose=False)
-except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
+except: rstore.create_scenario(snum, labels=(LOCI,ALLELES), description=desc)
 try: rstore.remove_run(rnum, snum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-mode = None
-#~ mode = 'report'      # create a report with pyreport
+#~ mode = None
+mode = 'report'      # create a report with pyreport
 
-n = 10000
+if mode == 'report':
+    progress = False
+else:
+    progress = True
+
+n = 20000
 step = 10
+figs = []
+figsize = [20,11]
 
-#! Start frequencies
+#! Start
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 startfreqs = np.zeros(FSHAPE)
 startfreqs[0,0,0,0,0,0,0] = 1.                   # pop1-A1-B1-S1-T1-P0-U
@@ -308,52 +323,69 @@ startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
 starttime = time.time()
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
 rstore.record_special_state(metapop.generation, 'start')
+rstore.dump_data(metapop)
+#! Plot
+#!----------------------------------------------------------------------
+fig = rstore.plot_overview(generation=metapop.generation, figsize=figsize)
+figs.append(fig)
+show()
+#! Nucleocytotype frequencies
+#!----------------------------------------------------------------------
 print metapop
+#! Locus overview
+#!----------------------------------------------------------------------
+print metapop.overview()
 
 #! Migration-selection equilibrium
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore)
+progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
+#! Plot
+#!----------------------------------------------------------------------
+fig = rstore.plot_overview(generation=metapop.generation, figsize=figsize)
+figs.append(fig)
+show()
+#! Nucleocytotype frequencies
+#!----------------------------------------------------------------------
 print metapop
+#! Locus overview
+#!----------------------------------------------------------------------
+print metapop.overview()
 
-#! Introduction of preference allele P1
+#! Introduction of preference alleles P1 and P2
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-intro_allele = 'P1'
-metapop.introduce_allele('pop3', intro_allele, intro_freq=intro, advance_generation_count=True)
+intro_allele_1 = 'P1'
+metapop.introduce_allele('pop3', intro_allele_1, intro_freq=intro, advance_generation_count=False)
+intro_allele_2 = 'P2'
+metapop.introduce_allele('pop4', intro_allele_2, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
-rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+rstore.record_special_state(metapop.generation, 'intro {0} and {1}'.format(intro_allele_1, intro_allele_2))
 print metapop
+#! Locus overview
+#!----------------------------------------------------------------------
+print metapop.overview()
 
-#! Equilibrium
+#! Final
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
+#! Plot
+#!----------------------------------------------------------------------
+fig = rstore.plot_overview(generation=metapop.generation, figsize=figsize)
+figs.append(fig)
+show()
+#! Nucleocytotype frequencies
+#!----------------------------------------------------------------------
 print metapop
-
-#! Introduction of preference allele P2
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-intro_allele = 'P2'
-metapop.introduce_allele('pop4', intro_allele, intro_freq=intro, advance_generation_count=True)
-rstore.dump_data(metapop)
-rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
-print metapop
-
-#! Final state
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
-# capture progress._format_line for printing at the very end:
-#~ progress_final = progress.finish(maxval=False, fdwrite=False)
+#! Locus overview
+#!----------------------------------------------------------------------
+print metapop.overview()
+#! Runtime
+#!----------------------------------------------------------------------
 if mode == 'report':
     print 'Simulation run completed:'
-    #~ print progress_final
     seconds = time.time()-starttime
     hhmmss = str(datetime.timedelta(seconds=int(seconds)))
     print 'Generation: {0} (Elapsed time: {1})'.format(metapop.generation, hhmmss)
     print ' '
-print metapop
-
-#! Loci (sums)
-#!----------------------------------------------------------------------
-print metapop.overview()
-
     
 #! Dynamic weights (final states)
 #!======================================================================
@@ -371,25 +403,15 @@ print TP
 
 if not mode == 'report':
     print 'Simulation run completed:'
-    #~ print progress_final
     seconds = time.time()-starttime
     hhmmss = str(datetime.timedelta(seconds=int(seconds)))
     print 'Generation: {0} (Elapsed Time: {1})'.format(metapop.generation, hhmmss)
 rstore.flush()
 
-#! Plots
+#! Dynamics
 #!======================================================================
-#! Time series
-#! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-fig = rstore.plot_sums(figsize=[20,10])
+fig = rstore.plot_sums(figsize=figsize)
+figs.append(fig)
 show()
-
-#! Final state
-#! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-fig = viz.stacked_bars(metapop.all_sums(), metapop.loci, metapop.alleles)
-
-#~ if mode == 'report':
-show()
-#~ close('all')
 
 rstore.close()
