@@ -269,6 +269,7 @@ class MetaPopulation(object):
         
         r_axes = config['REPRO_AXES']
         self.repro_axes = {'all': r_axes}
+        #~ self.repro_shape = 3 * self.shape
         self.repro_dim = config['REPRO_DIM']
         self.repro_idxs = {}
         for who in ['female', 'male', 'offspring']:
@@ -468,11 +469,13 @@ class MetaPopulation(object):
             progress: progressbar.ProgressBar instance
                 if none is provided, a new one is created
         """
-        M = weights['migration']
-        VS = weights['viability_selection']
-        R = weights['constant_reproduction']
-        SR,TP = weights['dynamic_reproduction']
-        pt = SR.pt
+        MIG = weights['migration']
+        VIAB_SEL = weights['viability_selection']
+        REPRO_CONST = weights['constant_reproduction']
+        dyn_repro_weights = weights['dynamic_reproduction']
+        pt = dyn_repro_weights[0][0].pt
+        #~ SR,TP = weights['dynamic_reproduction']
+        #~ pt = SR.pt
         
         self.runstore = runstore
         n += self.generation
@@ -500,24 +503,31 @@ class MetaPopulation(object):
             previous = np.copy(self.freqs)
             
             ### migration ##################################
-            self.freqs = np.sum(self.freqs[np.newaxis,...] * M, 1)   # sum over `source` axis
+            self.freqs = np.sum(self.freqs[np.newaxis,...] * MIG, 1)   # sum over `source` axis
             self.normalize()
             
             ### viability selection ########################
-            self.freqs = self.freqs * VS
+            self.freqs = self.freqs * VIAB_SEL
             self.normalize()
             
             ### reproduction ###############################
-            # species recognition:
-            SR.calculate( self.get_sums(['backA','backB']) )
-            
-            # trait preferences:
-            TP.calculate( self.get_sums('trait') )
+            #~ # species recognition:
+            #~ SR.calculate( self.get_sums(['backA','backB']) )
+            #~ 
+            #~ # trait preferences:
+            #~ TP.calculate( self.get_sums('trait') )
+            REPRO_DYN = 1. #np.ones( (1,)*self.repro_dim )
+            for DRW, target_loci in dyn_repro_weights:
+                DRW.calculate( self.get_sums(target_loci) )
+                REPRO_DYN = REPRO_DYN * DRW.extended()
             
             # offspring production:
             females = extend( self.freqs, self.repro_dim, self.repro_idxs['female'] )
             males = extend( self.freqs, self.repro_dim, self.repro_idxs['male'] )
-            self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
+            #~ self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
+            self.freqs = sum_along_axes( females * males * \
+                                         REPRO_CONST * \
+                                         REPRO_DYN, self.repro_idxs['offspring'] )
             self.normalize()
             
             self.generation += 1
