@@ -44,7 +44,7 @@ transition_probability = pt = 0.95   # probability of transition into another ma
 rejection_probability_trait1 = pr_t1 = 1.
 rejection_probability_trait2 = pr_t2 = 1.    # probability to reject a non-preferred male
 introduction_frequency = intro = 0.05        # introduction frequency of preference mutant allele
-threshold = 5e-3                   # equilibrium threshold
+threshold = 1e-4                   # equilibrium threshold
 parameters = dict(m=m, s=s, lCI=l, f=f, t=t, pt=pt, pr_t1=pr_t1, pr_t2=pr_t2, intro=intro, threshold=threshold)           # dictionary for storing simulation
 par_width = len(max(parameters.keys(), key=len))
 for p,v in sorted(parameters.items()):
@@ -219,8 +219,8 @@ try: rstore.remove_run(rnum, snum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-mode = None
-#~ mode = 'report'      # create a report with pyreport
+#~ mode = None
+mode = 'report'      # create a report with pyreport
 
 if mode == 'report':
     progress = False
