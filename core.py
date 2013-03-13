@@ -192,7 +192,7 @@ class PreferenceWeight(ReproductionWeight):
         self.pref_desc = pref_desc
         preferences = []
         for pref_allele,pop_prefs in sorted(pref_desc.items()):
-            prefidx = config['ADICT'][pref_allele][1]   # retrieve allele indexe
+            prefidx = config['ADICT'][pref_allele][1]   # retrieve allele index
             for pop,(cues,pr) in sorted(pop_prefs.items()):
                 if pop == 'all pops':   # same preference in all populations
                     popidx = slice(None,None,None)
@@ -284,23 +284,38 @@ class MetaPopulation(object):
         """
         if not self.isuptodate():
             self.update()
-        s = "{0}\nName: {1}\nGeneration: {2}\nEQ: {3}".format( \
+        s = "{0}\nName: {1}\nGeneration: {2}\nEQ: {3}\n".format( \
                 self.panda.unstack([0,-1]).to_string(float_format=utils.myfloat), \
                 self.name, \
                 self.generation, \
                 self.eq )
         return s
     
-    def overview(self):
+    def overview(self, *args):
         """
         Return nicely formatted string representation of locus sums.
+        
+        If arguments are passed then each argument must be a locus name
+        or a list of locus names.
         """
-        s = str(self.get_sums_pd([1,2]).unstack(2)) + '\n'
-        s += 'Name: background loci\n\n'
-        for loc in self.loci[3:]:
-            s += str(self.get_sums_pd(loc).unstack(1)) + '\n'
-            s += 'Name: {0}\n\n'.format(loc)
+        s = ''
+        if not args:
+            print 'no arguments passed'
+            args = self.loci[1:]
+        for a in args:
+            if isinstance(a, list):
+                s += str(self.get_sums_pd(a).unstack([-2,-1])) + '\n'
+                s += 'Name: {0}\n\n'.format(', '.join(a))
+            else:
+                s += str(self.get_sums_pd(a).unstack(1)) + '\n'
+                s += 'Name: {0}\n\n'.format(a)
         return s
+        #~ s = str(self.get_sums_pd([1,2]).unstack(2)) + '\n'
+        #~ s += 'Name: background loci\n\n'
+        #~ for loc in self.loci[3:]:
+            #~ s += str(self.get_sums_pd(loc).unstack(1)) + '\n'
+            #~ s += 'Name: {0}\n\n'.format(loc)
+        #~ return s
     
     def normalize(self):
         """
