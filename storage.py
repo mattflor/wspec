@@ -341,6 +341,7 @@ class RunStore(object):
         # resize to make room for next state:
         l = len(special_states)
         special_states.resize( (l+1,) )
+        self.flush()
     
     def get_special_states(self):
         return self.current['run']['special states'][:-1]
