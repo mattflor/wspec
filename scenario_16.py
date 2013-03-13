@@ -23,12 +23,13 @@ np.set_printoptions(precision=4, suppress=True, linewidth=200)
 #!======================================================================
 #! Loci and alleles
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-LOCI = ['population', 'backA', 'backB', 'recognition', 'trait', 'preference', 'cytotype']
-ALLELES = [['pop1','pop2','pop3','pop4','pop5'], \
-           ['A1', 'A2'], \
-           ['B1', 'B2'], \
-           ['S1', 'S2'], \
-           ['T1','T2','T3','T4','T5'], \
+LOCI = ['population', 'Alocus', 'Blocus', 'Clocus', 'Dlocus', 'trait', 'preference', 'cytotype']
+ALLELES = [['pop1', 'pop2'], \
+           ['A0', 'A1'], \
+           ['B0', 'B1'], \
+           ['C0', 'C1'], \
+           ['D0', 'D1'], \
+           ['T1', 'T2'], \
            ['P0', 'P1', 'P2'], \
            ['U', 'W']
           ]
@@ -38,21 +39,18 @@ for i,loc in enumerate(LOCI):
     
 #! Parameters
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-migration_rate = m = 0.05           # symmetric migration!
+migration_rate = m = 0.01           # symmetric migration!
 selection_coefficient = s = 1.      # T1 in pop1, T2 in pop2, etc.
 ci_level = l = 0.9                  # CI level
-mod_penetrance = e = 0.9            # penetrance of the suppression of CI modification
 fecundity_reduction = f = 0.        # fecundity reduction in infected females
 transmission_rate = t = 0.87        # transmission of Wolbachia
 transition_probability = pt = 0.95   # probability of transition into another mating round
-rejection_probability_species1 = pr_s1 = 0.25
-rejection_probability_species2 = pr_s2 = 0.55
-rejection_probability_trait3 = pr_t3 = 1.
-rejection_probability_trait4 = pr_t4 = 1.    # probability to reject a non-preferred male
+rejection_probability_trait1 = pr_t1 = 1.
+rejection_probability_trait2 = pr_t2 = 1.    # probability to reject a non-preferred male
 hybrid_male_sterility = h = 1.
 introduction_frequency = intro = 0.05        # introduction frequency of preference mutant allele
 threshold = 5e-3                   # equilibrium threshold
-parameters = dict(m=m, s=s, lCI=l, e=e, f=f, t=t, pt=pt, pr_s1=pr_s1, pr_s2=pr_s2, pr_t3=pr_t3, pr_t4=pr_t4, intro=intro, threshold=threshold)           # dictionary for storing simulation
+parameters = dict(m=m, s=s, lCI=l, f=f, t=t, pt=pt, pr_t1=pr_t1, pr_t2=pr_t2, intro=intro, threshold=threshold)           # dictionary for storing simulation
 par_width = len(max(parameters.keys(), key=len))
 for p,v in sorted(parameters.items()):
     print "%-*s  :\t%s" % (par_width, p, v)
@@ -85,16 +83,8 @@ weights = {}           # dictionary for storing simulation
 
 #! Migration
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                   
-#~ # pop1, pop2, and pop3 are of equal size, pop4 is twice as large:
-#~ mig = np.array([[1-m,       m,      0,      0], \
-                #~ [  m,   1-2*m,      m,      0], \
-                #~ [  0,       m,  1-2*m,      m/2], \
-                #~ [  0,       0,      m,    1-m/2]], float)
-mig = np.array([[1-m,       m,      0,      0,      0], \
-                [  m,   1-2*m,      m,      0,      0], \
-                [  0,       m,  1-2*m,      m,      0], \
-                [  0,       0,      m,  1-2*m,      m], \
-                [  0,       0,      0,      m,    1-m]], float)
+mig = np.array([[1-m,      m ], \
+                [  m,    1-m ]], float)
 M = core.MigrationWeight(name='migration', \
                          axes=['target', 'source'], \
                          config=config, \
@@ -106,11 +96,8 @@ print M
 
 #! Viability selection
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-viab = np.array([[ 1+s,    1,    1,    1,    1  ], \
-                 [   1,  1+s,    1,    1,    1  ], \
-                 [   1,    1,  1+s,    1,    1  ], \
-                 [   1,    1,    1,  1+s,    1  ], \
-                 [   1,    1,    1,    1,  1+s  ]], float)
+viab = np.array([[ 1+s,    1  ], \
+                 [   1,  1+s  ]], float)
 VS = core.ViabilityWeight(name='viability selection', \
                           axes=['population','trait'], \
                           config=config, \
@@ -125,28 +112,11 @@ print VS
 #! These weights are frequency-dependent. Their final states can be found
 #! in section `Dynamic weights (final states)`_.
 #!
-weights['dynamic_reproduction'] = []    # list of tuples (weight, [target_loci])
-#! Species recognition (preference for background loci)
-#!----------------------------------------------------------------------
-species_recognition = {'S1': {'all pops': ('A1-B1', pr_s1)}, \
-                       'S2': {'all pops': ('A2-B2', pr_s2)}
-                      }
-SR = core.PreferenceWeight(name='species recognition', \
-                           axes=['population', 'female_recognition', 'male_backA', 'male_backB'], \
-                           pref_desc = species_recognition, \
-                           config=config, \
-                           unstack_levels=[3], \
-                           pt=transition_probability, \
-                           pr_s1=rejection_probability_species1,
-                           pr_s2=rejection_probability_species2
-                          )
-weights['dynamic_reproduction'].append( (SR, ['backA','backB']) )
-print SR
-
+weights['dynamic_reproduction'] = []
 #! Trait preference
 #!----------------------------------------------------------------------
-trait_preferences = {'P1': {'all pops': ('T3', pr_t3)}, \
-                     'P2': {'all pops': ('T4', pr_t4)}
+trait_preferences = {'P1': {'all pops': ('T1', pr_t1)}, \
+                     'P2': {'all pops': ('T2', pr_t2)}
                     }
 TP = core.PreferenceWeight(name='trait preference', \
                            axes=['population', 'female_preference', 'male_trait'], \
@@ -154,33 +124,23 @@ TP = core.PreferenceWeight(name='trait preference', \
                            config=config, \
                            unstack_levels=[2], \
                            pt=transition_probability, \
-                           pr_t1=rejection_probability_trait3,
-                           pr_t2=rejection_probability_trait4
+                           pr_t1=rejection_probability_trait1,
+                           pr_t2=rejection_probability_trait2
                           )
 weights['dynamic_reproduction'].append( (TP, ['trait']) )
 print TP
 
 #! Reproduction
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#! Cytoplasmic incompatibility, suppression by A1-B1
+#! Cytoplasmic incompatibility
 #!----------------------------------------------------------------------
-CI = core.ReproductionWeight(name='cytoplasmic incompatibility (suppressed)', \
-                             axes=['male_backA', 'male_backB', 'male_cytotype', 'offspring_cytotype'], \
+CI = core.ReproductionWeight(name='cytoplasmic incompatibility', \
+                             axes=['male_cytotype', 'offspring_cytotype'], \
                              config=config, \
-                             unstack_levels=[-1], \
-                             lCI=ci_level, \
-                             e=mod_penetrance
+                             unstack_levels=[1], \
+                             lCI=ci_level
                             )
-ci, e = ci_level, mod_penetrance
-ary = np.array( [[[[1,          1], \
-                   [1-(1-e)*ci, 1]],              # mA1-mB1-mW oU    modified CI case
-                  [[1,          1], \
-                   [1-ci,       1]]], \
-                 [[[1,          1], \
-                   [1-ci,       1]], \
-                  [[1,          1], \
-                   [1-ci,       1]]]], float )
-CI.set( ary )
+CI.set( np.array([[1,1],[1-ci_level,1]],float) )
 CI_ = CI.extended()
 print CI
 
@@ -195,18 +155,6 @@ F.set( np.array([1,1-f],float) )
 F_ = F.extended()
 print F
 
-#! Hybrid male sterility
-#!----------------------------------------------------------------------
-HMS = core.ReproductionWeight(name='hybrid male sterility', \
-                              axes=['male_backA', 'male_backB'], \
-                              config=config, \
-                              unstack_levels=[1], \
-                              h=hybrid_male_sterility
-                             )
-HMS.set( np.array( [[1,1-h],[1-h,1]],float ) )
-HMS_ = HMS.extended()
-print HMS
-
 #! Cytotype inheritance (Wolbachia transmission)
 #!----------------------------------------------------------------------
 T = core.ReproductionWeight(name='cytotype inheritance', \
@@ -219,92 +167,152 @@ T.set( np.array([[1,0],[1-t,t]],float) )
 T_ = T.extended()
 print T
 
+#! Hybrid male sterility A/B
+#!----------------------------------------------------------------------
+HMS_AB = core.ReproductionWeight(name='hybrid male sterility A/B', \
+                              axes=['male_Alocus', 'male_Blocus'], \
+                              config=config, \
+                              unstack_levels=[1], \
+                              h=hybrid_male_sterility
+                             )
+HMS_AB.set( np.array( [[1,1],[1,1-h]],float ) )
+HMS_AB_ = HMS_AB.extended()
+print HMS_AB
+
+#! Hybrid male sterility A/D
+#!----------------------------------------------------------------------
+HMS_AD = core.ReproductionWeight(name='hybrid male sterility A/D', \
+                              axes=['male_Alocus', 'male_Dlocus'], \
+                              config=config, \
+                              unstack_levels=[1], \
+                              h=hybrid_male_sterility
+                             )
+HMS_AD.set( np.array( [[1,1],[1,1-h]],float ) )
+HMS_AD_ = HMS_AD.extended()
+print HMS_AD
+
+#! Hybrid male sterility B/C
+#!----------------------------------------------------------------------
+HMS_BC = core.ReproductionWeight(name='hybrid male sterility B/C', \
+                              axes=['male_Blocus', 'male_Clocus'], \
+                              config=config, \
+                              unstack_levels=[1], \
+                              h=hybrid_male_sterility
+                             )
+HMS_BC.set( np.array( [[1,1],[1,1-h]],float ) )
+HMS_BC_ = HMS_BC.extended()
+print HMS_BC
+
+#! Hybrid male sterility C/D
+#!----------------------------------------------------------------------
+HMS_CD = core.ReproductionWeight(name='hybrid male sterility C/D', \
+                              axes=['male_Clocus', 'male_Dlocus'], \
+                              config=config, \
+                              unstack_levels=[1], \
+                              h=hybrid_male_sterility
+                             )
+HMS_CD.set( np.array( [[1,1],[1,1-h]],float ) )
+HMS_CD_ = HMS_CD.extended()
+print HMS_CD
+
 #! Nuclear inheritance
 #!----------------------------------------------------------------------
 #! Preference locus
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
-PI = core.ReproductionWeight(name='preference inheritance', \
+IP = core.ReproductionWeight(name='preference inheritance', \
                              axes=['female_preference', 'male_preference', 'offspring_preference'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
 n_alleles = len(ALLELES[LOCI.index('preference')])
-PI.set( utils.nuclear_inheritance(n_alleles) )
-PI_ = PI.extended()
-print PI
+IP.set( utils.nuclear_inheritance(n_alleles) )
+IP_ = IP.extended()
+print IP
 
 #! Trait locus
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
-TI = core.ReproductionWeight(name='trait inheritance', \
+IT = core.ReproductionWeight(name='trait inheritance', \
                              axes=['female_trait', 'male_trait', 'offspring_trait'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
 n_alleles = len(ALLELES[LOCI.index('trait')])
-TI.set( utils.nuclear_inheritance(n_alleles) )
-TI_ = TI.extended()
-print TI
+IT.set( utils.nuclear_inheritance(n_alleles) )
+IT_ = IT.extended()
+print IT
 
 #! Background locus A
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
-AI = core.ReproductionWeight(name='background A inheritance', \
-                             axes=['female_backA', 'male_backA', 'offspring_backA'], \
+IA = core.ReproductionWeight(name='Alocus inheritance', \
+                             axes=['female_Alocus', 'male_Alocus', 'offspring_Alocus'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-n_alleles = len(ALLELES[LOCI.index('backA')])
-AI.set( utils.nuclear_inheritance(n_alleles) )
-AI_ = AI.extended()
-print AI
+n_alleles = len(ALLELES[LOCI.index('Alocus')])
+IA.set( utils.nuclear_inheritance(n_alleles) )
+IA_ = IA.extended()
+print IA
 
 #! Background locus B
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
-BI = core.ReproductionWeight(name='background B inheritance', \
-                             axes=['female_backB', 'male_backB', 'offspring_backB'], \
+IB = core.ReproductionWeight(name='Blocus inheritance', \
+                             axes=['female_Blocus', 'male_Blocus', 'offspring_Blocus'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-n_alleles = len(ALLELES[LOCI.index('backB')])
-BI.set( utils.nuclear_inheritance(n_alleles) )
-BI_ = BI.extended()
-print BI
+n_alleles = len(ALLELES[LOCI.index('Blocus')])
+IB.set( utils.nuclear_inheritance(n_alleles) )
+IB_ = IB.extended()
+print IB
 
-#! Species recognition locus
+#! Background locus C
 #!......................................................................
 #$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
-SI = core.ReproductionWeight(name='species recognition inheritance', \
-                             axes=['female_recognition', 'male_recognition', 'offspring_recognition'], \
+IC = core.ReproductionWeight(name='Clocus inheritance', \
+                             axes=['female_Clocus', 'male_Clocus', 'offspring_Clocus'], \
                              config=config, \
                              unstack_levels=[2], \
                             )
-n_alleles = len(ALLELES[LOCI.index('recognition')])
-SI.set( utils.nuclear_inheritance(n_alleles) )
-SI_ = SI.extended()
-print SI
+n_alleles = len(ALLELES[LOCI.index('Clocus')])
+IC.set( utils.nuclear_inheritance(n_alleles) )
+IC_ = IC.extended()
+print IC
+
+#! Background locus B
+#!......................................................................
+#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
+ID = core.ReproductionWeight(name='Dlocus inheritance', \
+                             axes=['female_Dlocus', 'male_Dlocus', 'offspring_Dlocus'], \
+                             config=config, \
+                             unstack_levels=[2], \
+                            )
+n_alleles = len(ALLELES[LOCI.index('Dlocus')])
+ID.set( utils.nuclear_inheritance(n_alleles) )
+ID_ = ID.extended()
+print ID
 
 # we can combine all reproduction weights that are not frequency-dependent:
-R_ = CI_ * F_ * T_ * PI_ * TI_ * AI_ * BI_ * SI_ * HMS_
+R_ = CI_ * F_ * T_ * IP_ * IT_ * IA_ * IB_ * IC_ * ID_ * HMS_AB_ * HMS_AD_ * HMS_BC_ * HMS_CD_
 weights['constant_reproduction'] = R_
 
     
 #! Simulation
 #!======================================================================
 desc = """
-- 5 populations, arranged like stepping stones linked by symmetrical migration
-- populations 1-3 representing uninfected D. sub.; pop.s 4-5 representing Wolbachia-infected D. rec. (initially)
-- a different trait adaptive in each population (T1 in pop.1, T2 in pop.2, T3 in pop.3, T4 in pop.4, T5 in pop.5)
-- species have diverged at background loci A and B and a preference locus for these loci
-- hybrid males are fully sterile (A1-B2 and A2-B1)
-- allele combination A1-B1 acts as a CI suppressor
-- allele P1 (female preference for trait T3) is introduced at equilibrium in pop.3
-- after a new equilibrium has been reached, allele P2 (female preference for trait T4) is introduced in pop.4
+- 2 populations linked by symmetrical migration
+- populations 1 uninfected, pop. 2 Wolbachia-infected
+- a different trait adaptive in each population (T1 in pop.1, T2 in pop.2)
+- hybrid males are fully sterile due to divergence at several loci (A, B, C, and D):
+  A1-B1, A1-D1, B1-C1, and C1-D1 males are sterile
+- allele P1 (female preference for trait T1) is introduced at equilibrium in pop.1
+- after a new equilibrium has been reached, allele P2 (female preference for trait T2) is introduced in pop.2
 - simulation is over when the final equilibrium has been reached
 """
-snum = 12
+snum = 16
 rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
 rnum = 2
 try: rstore.select_scenario(snum, verbose=False)
@@ -313,8 +321,8 @@ try: rstore.remove_run(rnum, snum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-mode = None
-#~ mode = 'report'      # create a report with pyreport
+#~ mode = None
+mode = 'report'      # create a report with pyreport
 
 if mode == 'report':
     progress = False
@@ -329,11 +337,8 @@ figsize = [20,11]
 #! Start
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 startfreqs = np.zeros(FSHAPE)
-startfreqs[0,0,0,0,0,0,0] = 1.                   # pop1-A1-B1-S1-T1-P0-U
-startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
-startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
-startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
-startfreqs[4,1,1,1,4,0,1] = 1.                   # pop4-A2-B2-S2-T5-P0-W
+startfreqs[0,1,0,1,0,0,0,0] = 1.                   # pop1-A1-B0-C1-D0-T1-P0-U
+startfreqs[1,0,1,0,1,1,0,1] = 1.                   # pop2-A0-B1-C0-D1-T2-P0-W
 starttime = time.time()
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
 rstore.record_special_state(metapop.generation, 'start')
@@ -348,7 +353,7 @@ show()
 print metapop
 #! Locus overview
 #!----------------------------------------------------------------------
-print metapop.overview()
+print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'], 'cytotype')
 
 #! Migration-selection equilibrium
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -363,18 +368,18 @@ show()
 print metapop
 #! Locus overview
 #!----------------------------------------------------------------------
-print metapop.overview()
+print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'], 'cytotype')
 
 #! Introduction of preference allele P1
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 intro_allele = 'P1'
-metapop.introduce_allele('pop3', intro_allele, intro_freq=intro, advance_generation_count=True)
+metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
 rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 #! Locus overview
 #!----------------------------------------------------------------------
-print metapop.overview()
+print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'], 'cytotype')
 
 #! P1 Equilibrium
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -389,18 +394,18 @@ show()
 print metapop
 #! Locus overview
 #!----------------------------------------------------------------------
-print metapop.overview()
+print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'], 'cytotype')
 
 #! Introduction of preference allele P2
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 intro_allele = 'P2'
-metapop.introduce_allele('pop4', intro_allele, intro_freq=intro, advance_generation_count=True)
+metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
 rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 print metapop
 #! Locus overview
 #!----------------------------------------------------------------------
-print metapop.overview()
+print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'], 'cytotype')
 
 #! Final
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -415,7 +420,7 @@ show()
 print metapop
 #! Locus overview
 #!----------------------------------------------------------------------
-print metapop.overview()
+print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'], 'cytotype')
 #! Runtime
 #!----------------------------------------------------------------------
 if mode == 'report':
@@ -427,14 +432,8 @@ if mode == 'report':
     
 #! Dynamic weights (final states)
 #!======================================================================
-
 #! Sexual selection (final)
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-#! Species recognition (final)
-#!----------------------------------------------------------------------
-print SR
-
 #! Trait preference (final)
 #!----------------------------------------------------------------------
 print TP

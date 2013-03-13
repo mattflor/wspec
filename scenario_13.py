@@ -23,11 +23,10 @@ np.set_printoptions(precision=4, suppress=True, linewidth=200)
 #!======================================================================
 #! Loci and alleles
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-LOCI = ['population', 'backA', 'backB', 'recognition', 'trait', 'preference', 'cytotype']
+LOCI = ['population', 'backA', 'backB', 'trait', 'preference', 'cytotype']
 ALLELES = [['pop1','pop2','pop3','pop4','pop5'], \
            ['A1', 'A2'], \
            ['B1', 'B2'], \
-           ['S1', 'S2'], \
            ['T1','T2','T3','T4','T5'], \
            ['P0', 'P1', 'P2'], \
            ['U', 'W']
@@ -45,14 +44,12 @@ mod_penetrance = e = 0.9            # penetrance of the suppression of CI modifi
 fecundity_reduction = f = 0.        # fecundity reduction in infected females
 transmission_rate = t = 0.87        # transmission of Wolbachia
 transition_probability = pt = 0.95   # probability of transition into another mating round
-rejection_probability_species1 = pr_s1 = 0.25
-rejection_probability_species2 = pr_s2 = 0.55
 rejection_probability_trait3 = pr_t3 = 1.
 rejection_probability_trait4 = pr_t4 = 1.    # probability to reject a non-preferred male
 hybrid_male_sterility = h = 1.
 introduction_frequency = intro = 0.05        # introduction frequency of preference mutant allele
 threshold = 5e-3                   # equilibrium threshold
-parameters = dict(m=m, s=s, lCI=l, e=e, f=f, t=t, pt=pt, pr_s1=pr_s1, pr_s2=pr_s2, pr_t3=pr_t3, pr_t4=pr_t4, intro=intro, threshold=threshold)           # dictionary for storing simulation
+parameters = dict(m=m, s=s, lCI=l, e=e, f=f, t=t, pt=pt, pr_t3=pr_t3, pr_t4=pr_t4, intro=intro, threshold=threshold)           # dictionary for storing simulation
 par_width = len(max(parameters.keys(), key=len))
 for p,v in sorted(parameters.items()):
     print "%-*s  :\t%s" % (par_width, p, v)
@@ -126,23 +123,6 @@ print VS
 #! in section `Dynamic weights (final states)`_.
 #!
 weights['dynamic_reproduction'] = []    # list of tuples (weight, [target_loci])
-#! Species recognition (preference for background loci)
-#!----------------------------------------------------------------------
-species_recognition = {'S1': {'all pops': ('A1-B1', pr_s1)}, \
-                       'S2': {'all pops': ('A2-B2', pr_s2)}
-                      }
-SR = core.PreferenceWeight(name='species recognition', \
-                           axes=['population', 'female_recognition', 'male_backA', 'male_backB'], \
-                           pref_desc = species_recognition, \
-                           config=config, \
-                           unstack_levels=[3], \
-                           pt=transition_probability, \
-                           pr_s1=rejection_probability_species1,
-                           pr_s2=rejection_probability_species2
-                          )
-weights['dynamic_reproduction'].append( (SR, ['backA','backB']) )
-print SR
-
 #! Trait preference
 #!----------------------------------------------------------------------
 trait_preferences = {'P1': {'all pops': ('T3', pr_t3)}, \
@@ -273,21 +253,8 @@ BI.set( utils.nuclear_inheritance(n_alleles) )
 BI_ = BI.extended()
 print BI
 
-#! Species recognition locus
-#!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
-SI = core.ReproductionWeight(name='species recognition inheritance', \
-                             axes=['female_recognition', 'male_recognition', 'offspring_recognition'], \
-                             config=config, \
-                             unstack_levels=[2], \
-                            )
-n_alleles = len(ALLELES[LOCI.index('recognition')])
-SI.set( utils.nuclear_inheritance(n_alleles) )
-SI_ = SI.extended()
-print SI
-
 # we can combine all reproduction weights that are not frequency-dependent:
-R_ = CI_ * F_ * T_ * PI_ * TI_ * AI_ * BI_ * SI_ * HMS_
+R_ = CI_ * F_ * T_ * PI_ * TI_ * AI_ * BI_ * HMS_
 weights['constant_reproduction'] = R_
 
     
@@ -297,24 +264,24 @@ desc = """
 - 5 populations, arranged like stepping stones linked by symmetrical migration
 - populations 1-3 representing uninfected D. sub.; pop.s 4-5 representing Wolbachia-infected D. rec. (initially)
 - a different trait adaptive in each population (T1 in pop.1, T2 in pop.2, T3 in pop.3, T4 in pop.4, T5 in pop.5)
-- species have diverged at background loci A and B and a preference locus for these loci
+- species have diverged at background loci A and B but without species recognition
 - hybrid males are fully sterile (A1-B2 and A2-B1)
 - allele combination A1-B1 acts as a CI suppressor
 - allele P1 (female preference for trait T3) is introduced at equilibrium in pop.3
 - after a new equilibrium has been reached, allele P2 (female preference for trait T4) is introduced in pop.4
 - simulation is over when the final equilibrium has been reached
 """
-snum = 12
+snum = 13
 rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
-rnum = 2
+rnum = 1
 try: rstore.select_scenario(snum, verbose=False)
 except: rstore.create_scenario(snum, labels=(LOCI,ALLELES), description=desc)
 try: rstore.remove_run(rnum, snum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-mode = None
-#~ mode = 'report'      # create a report with pyreport
+#~ mode = None
+mode = 'report'      # create a report with pyreport
 
 if mode == 'report':
     progress = False
@@ -329,11 +296,11 @@ figsize = [20,11]
 #! Start
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 startfreqs = np.zeros(FSHAPE)
-startfreqs[0,0,0,0,0,0,0] = 1.                   # pop1-A1-B1-S1-T1-P0-U
-startfreqs[1,0,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
-startfreqs[2,0,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
-startfreqs[3,1,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
-startfreqs[4,1,1,1,4,0,1] = 1.                   # pop4-A2-B2-S2-T5-P0-W
+startfreqs[0,0,0,0,0,0] = 1.                   # pop1-A1-B1-S1-T1-P0-U
+startfreqs[1,0,0,1,0,0] = 1.                   # pop2-A1-B1-S1-T2-P0-U
+startfreqs[2,0,0,2,0,0] = 1.                   # pop3-A1-B1-S1-T3-P0-U
+startfreqs[3,1,1,3,0,1] = 1.                   # pop4-A2-B2-S2-T4-P0-W
+startfreqs[4,1,1,4,0,1] = 1.                   # pop4-A2-B2-S2-T5-P0-W
 starttime = time.time()
 metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
 rstore.record_special_state(metapop.generation, 'start')
@@ -430,10 +397,6 @@ if mode == 'report':
 
 #! Sexual selection (final)
 #!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-#! Species recognition (final)
-#!----------------------------------------------------------------------
-print SR
 
 #! Trait preference (final)
 #!----------------------------------------------------------------------

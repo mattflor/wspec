@@ -44,9 +44,9 @@ ci_level = l = 0.9                  # CI level
 mod_penetrance = e = 0.9            # penetrance of the suppression of CI modification
 fecundity_reduction = f = 0.        # fecundity reduction in infected females
 transmission_rate = t = 0.87        # transmission of Wolbachia
-transition_probability = pt = 0.95   # probability of transition into another mating round
-rejection_probability_species1 = pr_s1 = 0.25
-rejection_probability_species2 = pr_s2 = 0.55
+transition_probability = pt = 0.9   # probability of transition into another mating round
+rejection_probability_species1 = pr_s1 = 0.7
+rejection_probability_species2 = pr_s2 = 0.9
 rejection_probability_trait3 = pr_t3 = 1.
 rejection_probability_trait4 = pr_t4 = 1.    # probability to reject a non-preferred male
 hybrid_male_sterility = h = 1.
@@ -305,16 +305,16 @@ desc = """
 - simulation is over when the final equilibrium has been reached
 """
 snum = 12
-rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
-rnum = 2
+rstore = storage.RunStore('/extra/flor/data/scenario_{0}_3.h5'.format(snum))
+rnum = 4
 try: rstore.select_scenario(snum, verbose=False)
 except: rstore.create_scenario(snum, labels=(LOCI,ALLELES), description=desc)
 try: rstore.remove_run(rnum, snum)
 except: pass
 rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
 
-mode = None
-#~ mode = 'report'      # create a report with pyreport
+#~ mode = None
+mode = 'report'      # create a report with pyreport
 
 if mode == 'report':
     progress = False
