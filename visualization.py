@@ -132,7 +132,7 @@ def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
         if i==npops-1:
             handles, labels = ax.get_legend_handles_labels()
             cumshape = np.cumsum(ashape)[::-1]
-            for idx in cumshape:
+            for idx in cumshape:   # add empty entries between loci for better overview of legend
                 labels.insert(idx, ' ')
                 handles.insert(idx, empty_rect)
             leg = plt.legend(handles, labels, loc="upper left", bbox_to_anchor=(1.01, 1.01), prop=legend_font)
