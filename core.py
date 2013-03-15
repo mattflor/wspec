@@ -12,6 +12,7 @@ import pandas as pd
 import utilities as utils
 import progressbar as pbar
 extend = utils.extend
+myfloat = utils.myfloat
 sum_along_axes = utils.sum_along_axes
 import pdb
 reload(pbar)
@@ -230,6 +231,84 @@ class PreferenceWeight(ReproductionWeight):
                 #~ self.array[pop,sno,ano,bno] = tmp
         #~ self.array = np.nan_to_num(self.array)
 
+class GeneralizedPreferenceWeight(ReproductionWeight):
+    def __init__(self, name, axes, pref_desc, config, unstack_levels=[], **parameters):
+        """
+        Args:
+            name, axes, config, unstack_levels, and parameters: see parent class
+            pref_desc: dict describing preferences
+                e.g.: {'P0': {'baseline': 0.},              # 0. is the default baseline!
+                       'P1': {'baseline': 0.9, 'T3': 0.},   # all traits not explicitely mentioned will be rejected with the baseline probability
+                       'P2': {'baseline': 0.8, 'T4': 0.}
+                      }
+                This description will be translated into an array containing
+                the rejection probabilities that can be accessed by the 
+                preference allele index and cue indexes.
+        """
+        ReproductionWeight.__init__(self, name=name, axes=axes, config=config, unstack_levels=unstack_levels, **parameters)
+        self.cue_axes = []
+        split_axes = [a.split('_') for a in axes]
+        for a in split_axes:
+            if a[0]=='female':
+                self.pref_locus = a[1]
+            elif a[0]=='male':
+                self.cue_axes.append(a[1])
+        fshape = config['FSHAPE']
+        loci = config['LOCI']
+        alleles = config['ALLELES']
+        adict = config['ADICT']
+        n_prefs = fshape[loci.index(self.pref_locus)]
+        self.cshape = tuple( [fshape[loci.index(a)] for a in self.cue_axes] )  # cue_shape
+        rprobs = np.zeros( (n_prefs,)+self.cshape, float )   # rejection probabilities array with default baseline of 0.
+        self.pref_desc = pref_desc
+        for pref_allele,prefs in sorted(pref_desc.items()):
+            prefidx = adict[pref_allele][1]   # retrieve allele index
+            keys = sorted(prefs.keys())
+            if 'baseline' in keys:
+                pr = prefs['baseline']
+                rprobs[prefidx] = pr
+            for cue,pr in sorted(prefs.items()):
+                if cue == 'baseline':
+                    break
+                cues = cue.split('-')
+                cueidx = tuple( [adict[c][1] for c in cues] )   # get cue allele indexes
+                rprobs[(prefidx,)+cueidx] = pr
+                #~ preferences.append( ((popidx,prefidx)+cueidx, pr) ) # tuple of all indexes together (as a tuple) and the rejection probability
+        self.rejection_probabilities = self.rprobs = rprobs   # shape: (pref, cue1, cue2, ...)
+        names = [self.pref_locus] + self.cue_axes
+        labels = []
+        for a in names:
+            labels.append(alleles[loci.index(a)])
+        idx = utils.panda_index(labels, names)
+        self.rpanda = pd.Series(rprobs.flatten(), index=idx, name='rejection probabilities')
+        
+    
+    def calculate(self, x):
+        """
+        Args:
+            x: ndarray
+                frequency array of preferred traits in the appropriate shape
+            pt: float
+                transition probability
+        """
+        #~ self.set_to_ones()
+        rej = self.rprobs[np.newaxis,...]    # bring rejection probabilities to correct shape
+        cues = x[:,np.newaxis,...]           # same for preference cues
+        norm = 1. - self.pt * utils.sum_along_axes(rej*cues, [0,1])  # sum along population and preference a.k.a. sum over all cues
+        self.array = np.nan_to_num( (1.-rej)/norm[...,np.newaxis] )
+    
+    def __str__(self):
+        s = Weight.__str__(self) + '\n'
+        ndim = self.rprobs.ndim
+        s += '{0}:\n{1}\n'.format( self.rpanda.name, self.rpanda.unstack([1]*(ndim-1)) )
+        #~ s += 'rejection probabilities:\n'
+        #~ for pref,vals in sorted(self.pref_desc.items()):
+            #~ s += '    {0}    '.format(pref)
+            #~ for cue,pr in vals:
+                #~ s += '{0}:    {1}\n'.format(p, str(v).translate(None, "'{}"))
+        return s
+    
+    
 class DummyProgressBar(object):
     def update(self, val):
         pass
@@ -300,7 +379,7 @@ class MetaPopulation(object):
         """
         s = ''
         if not args:
-            print 'no arguments passed'
+        
             args = self.loci[1:]
         for a in args:
             if isinstance(a, list):
