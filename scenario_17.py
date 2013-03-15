@@ -415,7 +415,7 @@ show()
 print metapop
 #! Locus overview
 #!----------------------------------------------------------------------
-print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'], 'cytotype')
+print metapop.overview(['Alocus', 'Blocus', 'Clocus', 'Dlocus'], ['trait', 'preference'])
 #! Runtime
 #!----------------------------------------------------------------------
 if mode == 'report':
