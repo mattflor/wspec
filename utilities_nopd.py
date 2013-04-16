@@ -9,7 +9,6 @@
 import numpy as np
 from numpy import sum
 import matplotlib.pyplot as plt
-import pandas as pd
 from pprint import PrettyPrinter
 
 def list_shape(list2d):
@@ -73,48 +72,12 @@ def sum_along_axes(arr, axes):
 def sum_over_axes(arr, axes):
     if isinstance(axes,int): axes = [axes]       # enable passing of a single int axis
     return np.apply_over_axes(sum, arr, axes).squeeze()
-        
-def panda_index(labels, names=None, dtype='|S10'):
-    """
-    Create a pandas.MultiIndex with row names contained in the nested 
-    list `labels` and column names contained in the optional list 
-    `names`.
-    
-    Args:
-        labels: nested list of strings
-        names: list of strings
-    
-    Example usage:
-        >>> labels = [['wine','water','beer'], [0.2','0.5'], ['to go','for here']]
-        >>> names = ['beverage','size','order']
-        >>> index = make_index(labels,names)
-        >>> index
-        
-    """
-    if names==None:
-        names = ['axis{0}'.format(i) for i in range(len(labels))]
-    else:
-        assert len(labels)==len(names)
-    sh = list_shape(labels)
-    n_axes = len(labels)
-    n_total = np.prod(sh)
-    ctile = np.concatenate( ([1],np.cumprod(sh)[:-1]) )
-    crep = np.concatenate( (np.cumprod(sh[::-1])[:-1][::-1],[1]) )
-    replabels = np.empty((n_axes,n_total), dtype=dtype)
-    for i,l in enumerate(labels):
-        replabels[i] = np.tile( np.repeat(l,crep[i]), ctile[i] )
-    tuples = zip(*replabels)
-    return pd.MultiIndex.from_tuples(tuples, names=names)
 
 def myfloat(x, threshold=1e-4, absolute_threshold=1e-10):
-    import pandas as pd
     if x < absolute_threshold: return '    ---'
     elif x < threshold: return '    0.0'
     else: return '%.4f' % x
-try:
-    pd.set_option('display.float_format',myfloat)
-except:
-    pd.set_printoptions(precision=5)
+
 
 class MyPrettyPrinter(PrettyPrinter):
     def format(self, object, context, maxlevels, level):

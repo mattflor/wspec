@@ -6,16 +6,99 @@
 .. moduleauthor:: Matthias Flor <matthias.c.flor@gmail.com>
 
 """
-import sys
+import sys, os
 import numpy as np
-import pandas as pd
-import utilities as utils
-import progressbar as pbar
+from matplotlib.cbook import flatten
+from itertools import izip
+import utilities_nopd as utils
 extend = utils.extend
 myfloat = utils.myfloat
 sum_along_axes = utils.sum_along_axes
 import pdb
-reload(pbar)
+
+def linear_labels(nestedlabels):
+    def reclabels(labels):
+        lsh = utils.list_shape(labels)
+        if len(lsh) == 1 or len(lsh) == 0:
+            return labels       # list of strings
+        first,rest = labels[0], labels[1:]
+        return [[x] + reclabels(rest) for x in first]
+    nested = reclabels(nestedlabels)
+    return list(flatten(nested))
+    
+def labeled_array(a, nestedlabels=None):
+    """
+    Input:
+        a : numpy array
+        nestedlabels : nested list of strings
+    Output:
+        out : string
+    """
+    if a is None:
+        return 'no array'
+    if nestedlabels is None:
+        nestedlabels = default_labels(np.shape(a))
+    lshape = utils.list_shape(nestedlabels)
+    n = len(lshape)
+    #~ print 'array (shape {0}):'.format(np.shape(a))
+    #~ print a
+    #~ print 'labels (shape {0}):'.format(lshape)
+    #~ print nestedlabels
+    #~ assert np.shape(a) == lshape
+    toplabels = nestedlabels[-1]
+    labels = linear_labels(nestedlabels[:-1])   # linear list of labels
+    labels = [''] + [' '+label+' ' for label in labels]
+    astring = str(a)
+    c = 0                                # count
+    s = ''
+    indentation = []
+    for char in astring:
+        if char == '[':
+            name = labels[c]
+            s += labels[c]+'['
+            indentation.append(len(name))
+            c += 1
+        elif char == ']':
+            s += ' ]'
+        elif char == '\n':
+            indentation.pop()
+            s += '\n'+np.sum(indentation)*' '
+        else:
+            s += char
+    lines = s.split('\n')
+    cols = []
+    i = 0
+    first = lines[0]
+    for char in first:
+        if char == '.':
+            cols.append(i)
+        i += 1
+    t = ' '*len(first)
+    for c,lab in izip(cols,toplabels):
+        t = t[:c-1]+lab+t[c-1:]
+    ret = t+'\n'+s
+    ret = os.linesep.join([s for s in ret.splitlines() if s.strip()])
+    return ret+'\n'
+
+def default_labels(sh):
+    """If no labels are provided then create default labels.
+    
+    E.g.: If _data = np.array([[1.,2.],[3.,4.],[5.,6.]] then
+          labels = {'axes': ['a0', 'a1'],
+                    'elements': [['e00','e01','e02'],['e10','e11']]}.
+          print a would then yield:
+          [[1., 2.],   |   [['e00-e10', 'e00...
+           [3., 4.],   |
+           [5., 6.]]   |
+    """
+    n = len(sh)
+    labels = []
+    for i in range(n):
+        temp_list = []
+        for j in range(sh[i]):
+            temp_list.append("el_%d%d" % (i,j))
+        labels.append(temp_list)
+    return labels
 
 class Weight(object):
     """
@@ -23,18 +106,19 @@ class Weight(object):
     
     Not usable on its own because no panda respresentation is created.
     """
-    def __init__(self, name, axes, arr=None, unstack_levels=-1, **parameters):
+    def __init__(self, name, axes, labels=None, arr=None, **parameters):
         self.name = name
         self.axes = axes
         self.array = arr
-        self.unstack_levels = unstack_levels
+        if not labels:
+            if arr is not None:
+                labels = default_labels(np.shape(arr))
+            else:
+                labels = 'no labels'
+        self.labels = labels
         self.parameters = parameters
         self.__dict__.update(parameters)
-    
-    def make_panda(self, labels):
-        pd_idx = utils.panda_index(labels, self.axes)
-        self.panda = pd.Series(self.array.flatten(), index=pd_idx, name=self.name)
-    
+        
     def configure_extension(self, dim, pos):
         self.extdim = dim
         self.extpos = pos
@@ -45,22 +129,9 @@ class Weight(object):
         """
         assert np.shape(arr) == self.shape
         self.array = arr
-        self.panda.data = arr
     
     def set_to_ones(self):
         self.array = np.ones(self.shape,float)
-    
-    def isuptodate(self):
-        """
-        Return True if panda representation is up to date.
-        """
-        return np.all( self.array.flatten() == self.panda.values )
-        
-    def update(self):
-        """
-        Update panda representation.
-        """
-        self.panda.data = self.array
     
     def extended(self):
         return extend(self.array, self.extdim, self.extpos)
@@ -70,28 +141,11 @@ class Weight(object):
         Nicely formatted string output of the reproduction weight. We 
         just use the panda Series output.
         """
-        if not self.isuptodate():
-            self.update()
-        if self.unstack_levels:
-            s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels), self.name )
-        else:
-            s = str(self.panda) + '\n'
+        s = self.name+':\n'+labeled_array(self.array, self.labels)
         pars = ''
         for k,v in sorted(self.parameters.items()):
           pars += '{0}: {1}\n'.format(k,v)
-        return s + pars.rstrip()
-    
-    def str_myfloat(self):
-        if not self.isuptodate():
-            self.update()
-        if self.unstack_levels:
-            s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels).to_string(float_format=myfloat), self.name )
-        else:
-            s = '{0}\n'.format( self.panda.to_string(float_format=myfloat) )
-        pars = ''
-        for k,v in sorted(self.parameters.items()):
-          pars += '{0}: {1}\n'.format(k,v)
-        return s + pars.rstrip()
+        return s
     
 
 class MigrationWeight(Weight):
@@ -100,15 +154,13 @@ class MigrationWeight(Weight):
                  axes=['target', 'source'], \
                  config=None, \
                  arr=None, \
-                 unstack_levels=-1, \
                  **parameters):
-        Weight.__init__(self, name, axes, arr, unstack_levels, **parameters)
         labels = utils.get_alleles(['population','population'], config=config)
-        self.shape = utils.list_shape(labels)
+        sh = utils.list_shape(labels)
         if arr == None:
-            arr = np.zeros( self.shape, float )
-        self.array = arr
-        self.make_panda(labels)
+            arr = np.zeros( sh, float )
+        Weight.__init__(self, name, axes, labels, arr, **parameters)
+        self.shape = sh
         self.configure_extension( dim=1+config['N_LOCI'], pos=[0,1] )
 
 class ViabilityWeight(Weight):
@@ -117,15 +169,13 @@ class ViabilityWeight(Weight):
                  axes=['population', 'trait'], \
                  config=None, \
                  arr=None, \
-                 unstack_levels=-1, \
                  **parameters):
-        Weight.__init__(self, name, axes, arr, unstack_levels, **parameters)
         labels = utils.get_alleles(axes, config=config)
-        self.shape = utils.list_shape(labels)
+        sh = utils.list_shape(labels)
         if arr == None:
-            arr = np.zeros( self.shape, float )
-        self.array = arr
-        self.make_panda(labels)
+            arr = np.zeros( sh, float )
+        Weight.__init__(self, name, axes, labels, arr, **parameters)
+        self.shape = sh
         pos = [config['LOCI'].index(a) for a in axes]
         self.configure_extension( dim=config['N_LOCI'], pos=pos )
 
@@ -145,7 +195,7 @@ class ReproductionWeight(Weight):
     The class method `dynamic` should be used to achieve a dynamic 
     update of the weight array.
     """
-    def __init__(self, name, axes, config, arr=None, unstack_levels=[], **parameters):
+    def __init__(self, name, axes, config, arr=None, **parameters):
         """
         Args:
             name: str
@@ -158,18 +208,18 @@ class ReproductionWeight(Weight):
                 if `arr` is not provided on initialization, it will be
                 populated with zeros and **must** be set afterwords with
                 the `set` method
-            unstack_levels: int, string, or list of these
-                level(s) to unstack panda Series
             parameters: dict
                 dictionary of parameter names (keys) and values (values)
         """
-        Weight.__init__(self, name=name, axes=axes, arr=arr, unstack_levels=unstack_levels, **parameters)
         labels = utils.make_reproduction_allele_names(axes, config)
-        self.shape = utils.list_shape( labels )
+        sh = utils.list_shape(labels)
+        #~ print 'init repro weight'
+        #~ print 'labels (shape {0}):'.format(sh)
+        #~ print labels
         if arr == None:
-            arr = np.zeros( self.shape, float )
-        self.array = arr
-        self.make_panda(labels)
+            arr = np.zeros( sh, float )
+        Weight.__init__(self, name=name, axes=axes, labels=labels, arr=arr, **parameters)
+        self.shape = sh
         dim = config['REPRO_DIM']
         repro_axes = config['REPRO_AXES']
         pos = [repro_axes.index(ax) for ax in axes]
@@ -185,7 +235,6 @@ def hms_generator((locus1, allele1), (locus2, allele2), config, h=1.):
     HMS_weight = ReproductionWeight(name='hybrid male sterility {0}/{1}'.format(locus1,locus2), \
         axes=['male_{0}locus'.format(locus1), 'male_{0}locus'.format(locus2)], \
         config=config, \
-        unstack_levels=[1], \
         h=h
         )
     alleles = config['ALLELES']
@@ -199,10 +248,10 @@ def hms_generator((locus1, allele1), (locus2, allele2), config, h=1.):
     return HMS_weight, HMS_weight_
 
 class PreferenceWeight(ReproductionWeight):
-    def __init__(self, name, axes, pref_desc, config, unstack_levels=[], **parameters):
+    def __init__(self, name, axes, pref_desc, config, **parameters):
         """
         Args:
-            name, axes, config, unstack_levels, and parameters: see parent class
+            name, axes, config, and parameters: see parent class
             pref_desc: dict describing preferences
                 e.g.: {'S1': {'pop1': ('A1-B1', 0.9), \
                               'pop2': ('A1-B1', 0.9)}, 
@@ -211,7 +260,7 @@ class PreferenceWeight(ReproductionWeight):
                 This description will be translated into a list that is
                 easier to use in indexing the array.
         """
-        ReproductionWeight.__init__(self, name=name, axes=axes, config=config, unstack_levels=unstack_levels, **parameters)
+        ReproductionWeight.__init__(self, name=name, axes=axes, config=config, **parameters)
         # use config for determining preference allele indexes
         self.pref_desc = pref_desc
         preferences = []
@@ -244,21 +293,12 @@ class PreferenceWeight(ReproductionWeight):
             self.array[idx[:2]] *= (1-pr)*tmp_   # idx[:2]: preferred trait indexes removed
             self.array[idx] = tmp
         self.array = np.nan_to_num(self.array)
-        
-    #~ def calculate(self, preferred):
-        #~ self.set_to_ones()
-        #~ for sno, prefs in self.preferences:
-            #~ for pop, ano, bno, pr in prefs:
-                #~ tmp = 1./(1-pr*pt*(1-preferred[pop,ano,bno]))
-                #~ self.array[pop,sno] *= (1-pr)*tmp
-                #~ self.array[pop,sno,ano,bno] = tmp
-        #~ self.array = np.nan_to_num(self.array)
 
 class GeneralizedPreferenceWeight(ReproductionWeight):
-    def __init__(self, name, axes, pref_desc, config, unstack_levels=[], **parameters):
+    def __init__(self, name, axes, pref_desc, config, **parameters):
         """
         Args:
-            name, axes, config, unstack_levels, and parameters: see parent class
+            name, axes, config, and parameters: see parent class
             pref_desc: dict describing preferences
                 e.g.: {'P0': {'baseline': 0.},              # 0. is the default baseline!
                        'P1': {'baseline': 0.9, 'T3': 0.},   # all traits not explicitely mentioned will be rejected with the baseline probability
@@ -268,7 +308,7 @@ class GeneralizedPreferenceWeight(ReproductionWeight):
                 the rejection probabilities that can be accessed by the 
                 preference allele index and cue indexes.
         """
-        ReproductionWeight.__init__(self, name=name, axes=axes, config=config, unstack_levels=unstack_levels, **parameters)
+        ReproductionWeight.__init__(self, name=name, axes=axes, config=config, **parameters)
         self.cue_axes = []
         split_axes = [a.split('_') for a in axes]
         for a in split_axes:
@@ -299,13 +339,8 @@ class GeneralizedPreferenceWeight(ReproductionWeight):
                 #~ preferences.append( ((popidx,prefidx)+cueidx, pr) ) # tuple of all indexes together (as a tuple) and the rejection probability
         self.rejection_probabilities = self.rprobs = rprobs   # shape: (pref, cue1, cue2, ...)
         names = [self.pref_locus] + self.cue_axes
-        labels = []
-        for a in names:
-            labels.append(alleles[loci.index(a)])
-        idx = utils.panda_index(labels, names)
-        self.rpanda = pd.Series(rprobs.flatten(), index=idx, name='rejection probabilities')
+        self.rlabels = utils.get_alleles(names, config=config)
         
-    
     def calculate(self, x):
         """
         Args:
@@ -321,16 +356,9 @@ class GeneralizedPreferenceWeight(ReproductionWeight):
         self.array = np.nan_to_num( (1.-rej)/norm[...,np.newaxis] )
     
     def __str__(self):
-        s = Weight.__str__(self) + '\n'
-        ndim = self.rprobs.ndim
-        s += '{0}:\n{1}\n'.format( self.rpanda.name, self.rpanda.unstack([1]*(ndim-1)) )
-        #~ s += 'rejection probabilities:\n'
-        #~ for pref,vals in sorted(self.pref_desc.items()):
-            #~ s += '    {0}    '.format(pref)
-            #~ for cue,pr in vals:
-                #~ s += '{0}:    {1}\n'.format(p, str(v).translate(None, "'{}"))
+        s = Weight.__str__(self).rstrip() + '\nrejection probabilities:\n'
+        s += labeled_array(self.rprobs, self.rlabels)
         return s
-    
     
 class DummyProgressBar(object):
     def update(self, val):
@@ -338,20 +366,14 @@ class DummyProgressBar(object):
     def finish(self):
         pass
     
-def generate_progressbar(progress_type='real'):
-    if progress_type == 'real':
-        widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
-        return pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
-    elif progress_type == 'dummy':
-        return DummyProgressBar()
-    else:
-        raise TypeError, "progress_type `{0}` unknown; use `real` or `dummy` instead".format(progress_type)
+def generate_progressbar():
+    return DummyProgressBar()
 
 class MetaPopulation(object):
     def __init__(self, frequencies, config, generation=0, name='metapopulation', eq='undetermined'):
         self.loci = config['LOCI']
         self.n_loci = len(self.loci)
-        self.alleles = config['ALLELES']
+        self.alleles = self.labels = config['ALLELES']
         #~ self.repro_axes = config['REPRO_AXES']  # reproduction_axes(loci)
         #~ self.repro_dim = config['REPRO_DIM']    #len(self.repro_axes)
         assert np.shape(frequencies) == utils.list_shape(self.alleles)
@@ -366,8 +388,6 @@ class MetaPopulation(object):
         self.generation = generation
         self.name = name
         self.eq = eq
-        labels = utils.panda_index(self.alleles, self.loci)
-        self.panda = pd.Series(self.freqs.flatten(), index=labels, name=name)
         
         r_axes = config['REPRO_AXES']
         self.repro_axes = {'all': r_axes}
@@ -384,14 +404,7 @@ class MetaPopulation(object):
         Returns nicely formatted string representation of metapopulation 
         as unstacked panda series.
         """
-        if not self.isuptodate():
-            self.update()
-        s = "{0}\nName: {1}\nGeneration: {2}\nEQ: {3}\n".format( \
-                self.panda.unstack([0,-1]).to_string(float_format=utils.myfloat), \
-                self.name, \
-                self.generation, \
-                self.eq )
-        return s
+        return self.name+':\n'+labeled_array(self.freqs, self.labels)
     
     def overview(self, *args):
         """
@@ -400,24 +413,19 @@ class MetaPopulation(object):
         If arguments are passed then each argument must be a locus name
         or a list of locus names.
         """
-        s = ''
+        s = 'overview:\n'
         if not args:
-        
             args = self.loci[1:]
         for a in args:
             if isinstance(a, list):
-                s += str(self.get_sums_pd(a).unstack([-2,-1])) + '\n'
-                s += 'Name: {0}\n\n'.format(', '.join(a))
+                s += ', '.join(a) + ':\n'
+                axes = [self.loci[0]] + a
             else:
-                s += str(self.get_sums_pd(a).unstack(1)) + '\n'
-                s += 'Name: {0}\n\n'.format(a)
+                s += a+':\n'
+                axes = [self.loci[0], a]
+            labels = [self.alleles[self.loci.index(locus)] for locus in axes]
+            s += labeled_array(self.get_sums(a), labels)+'\n'
         return s
-        #~ s = str(self.get_sums_pd([1,2]).unstack(2)) + '\n'
-        #~ s += 'Name: background loci\n\n'
-        #~ for loc in self.loci[3:]:
-            #~ s += str(self.get_sums_pd(loc).unstack(1)) + '\n'
-            #~ s += 'Name: {0}\n\n'.format(loc)
-        #~ return s
     
     def normalize(self):
         """
@@ -426,19 +434,7 @@ class MetaPopulation(object):
         """
         s = sum_along_axes(self.freqs, 0)          # first axis are `populations`
         self.freqs /= extend(s, self.ndim, 0)      # in-place, no copy
-    
-    def isuptodate(self):
-        """
-        Return True if panda representation is up to date.
-        """
-        return np.all(self.panda.values == self.freqs.flatten())
-    
-    def update(self):
-        """
-        Update panda representation.
-        """
-        self.panda.data = self.freqs.flatten()
-    
+        
     def load_freqs_from_file(self, g, filename, snum, rnum):
         self.freqs = storage.get_frequencies(g, filename, snum, rnum)
         
@@ -498,34 +494,34 @@ class MetaPopulation(object):
             sums.append( self.get_sums(locus) )
         return sums
     
-    def get_sums_pd(self, locus, pop=None):
-        """
-        Return the summed frequency at `locus` (in `pop` if given, or
-        in all populations) as a panda series for nice print output.
-        
-        Args:
-            locus: int or string or list of these
-                locus indexes or names
-            pop: int or string
-                population index or name
-        
-        Returns:
-            out: ndarray
-        """
-        if not self.isuptodate():
-            self.update()
-        level = [0]
-        if not isinstance(locus, list):
-            locus = [locus]
-        for loc in locus:
-            if isinstance(loc, int): level.append(loc)
-            else: level.append( self.loci.index(loc) )
-        p = self.panda.sum(level=level)
-        if pop or pop==0:
-            if isinstance(pop,int):
-                pop = self.populations[pop]
-            return p[pop]
-        return p
+    #~ def get_sums_pd(self, locus, pop=None):
+        #~ """
+        #~ Return the summed frequency at `locus` (in `pop` if given, or
+        #~ in all populations) as a panda series for nice print output.
+        #~ 
+        #~ Args:
+            #~ locus: int or string or list of these
+                #~ locus indexes or names
+            #~ pop: int or string
+                #~ population index or name
+        #~ 
+        #~ Returns:
+            #~ out: ndarray
+        #~ """
+        #~ if not self.isuptodate():
+            #~ self.update()
+        #~ level = [0]
+        #~ if not isinstance(locus, list):
+            #~ locus = [locus]
+        #~ for loc in locus:
+            #~ if isinstance(loc, int): level.append(loc)
+            #~ else: level.append( self.loci.index(loc) )
+        #~ p = self.panda.sum(level=level)
+        #~ if pop or pop==0:
+            #~ if isinstance(pop,int):
+                #~ pop = self.populations[pop]
+            #~ return p[pop]
+        #~ return p
     
     def introduce_allele(self, pop, allele, intro_freq, advance_generation_count=True):
         """
@@ -602,22 +598,14 @@ class MetaPopulation(object):
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
         
         still_changing = True
-        if isinstance(progress, (pbar.ProgressBar, DummyProgressBar)):
-            pass   # reuse progressbar
-        elif progress is False:
-            progress = generate_progressbar('dummy')
-        elif progress is True:
-            progress = generate_progressbar('real')
-            #~ widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
-            #~ progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval! , fd=sys.stdout
-        else:
-            raise TypeError, "`progress` must be True, False, or an existing progressbar instance"
+
+        progress = generate_progressbar()
         while still_changing and self.generation < n:
             # data storage:
             if self.runstore != None:
                 if self.generation % step == 0:
                     #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
-                    self.runstore.dump_data(self)
+                    pass  #self.runstore.dump_data(self)
                     #~ self.runstore.flush()
                     
             previous = np.copy(self.freqs)
@@ -655,13 +643,13 @@ class MetaPopulation(object):
             still_changing = utils.diff(self.freqs, previous) > thresh
         
         self.eq = not still_changing
-        if self.runstore != None:   # store final state
-            self.runstore.dump_data(self)
-            if self.eq:
-                state_desc = 'eq'
-            else:
-                state_desc = 'max'
-            self.runstore.record_special_state(self.generation, state_desc)
+        #~ if self.runstore != None:   # store final state
+            #~ self.runstore.dump_data(self)
+            #~ if self.eq:
+                #~ state_desc = 'eq'
+            #~ else:
+                #~ state_desc = 'max'
+            #~ self.runstore.record_special_state(self.generation, state_desc)
 
         # return ProgressBar instance so we can reuse it for further running:
         return progress

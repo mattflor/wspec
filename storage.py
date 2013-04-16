@@ -1,4 +1,4 @@
-import h5py, datetime
+import datetime, h5py
 import numpy as np
 import utilities as utils
 import visualization as viz
