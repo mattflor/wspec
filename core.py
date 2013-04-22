@@ -54,7 +54,8 @@ class Weight(object):
         """
         Return True if panda representation is up to date.
         """
-        return np.all( self.array.flatten() == self.panda.values )
+        #~ return np.all( self.array.flatten() == self.panda.values )
+        return np.all( self.array.ravel() == self.panda.values )
         
     def update(self):
         """
@@ -431,7 +432,8 @@ class MetaPopulation(object):
         """
         Return True if panda representation is up to date.
         """
-        return np.all(self.panda.values == self.freqs.flatten())
+        #~ return np.all(self.panda.values == self.freqs.flatten())
+        return np.all(self.panda.values == self.freqs.ravel())
     
     def update(self):
         """
