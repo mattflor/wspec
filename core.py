@@ -625,12 +625,14 @@ class MetaPopulation(object):
             previous = np.copy(self.freqs)
             
             ### migration ##################################
-            self.freqs = np.sum(self.freqs[np.newaxis,...] * MIG, 1)   # sum over `source` axis
-            self.normalize()
+            if MIG is not None:
+                self.freqs = np.sum(self.freqs[np.newaxis,...] * MIG, 1)   # sum over `source` axis
+                self.normalize()
             
             ### viability selection ########################
-            self.freqs = self.freqs * VIAB_SEL
-            self.normalize()
+            if VIAB_SEL is not None:
+                self.freqs = self.freqs * VIAB_SEL
+                self.normalize()
             
             ### reproduction ###############################
             #~ # species recognition:

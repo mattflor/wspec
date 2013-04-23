@@ -128,9 +128,17 @@ class RunStore(object):
             npars = len(pars)   # number of paramters
             parameters = run.create_dataset('parameters', (npars,), par_dtype)
             i = 0
-            for name,value in sorted(pars.items()):
-                parameters[i] = (name, value)
-                i += 1
+            # backwards compatibility:
+            ks = pars.keys()
+            if not isinstance(pars[ks[0]], tuple):
+                for name,value in sorted(pars.items()):
+                    parameters[i] = (name, value)
+                    i += 1
+            # end of backward comp.
+            else:
+                for name,(value,desc) in sorted(pars.items()):
+                    parameters[i] = (name, value)
+                    i += 1
             # integer counter:
             self.counter = run.create_dataset('counter', (), 'i')
             # resizable generation array:

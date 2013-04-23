@@ -12,6 +12,58 @@ import matplotlib.pyplot as plt
 import pandas as pd
 from pprint import PrettyPrinter
 
+def loci2string(loci, alleles):
+    loci = ['locus'] + loci
+    alleles = ['alleles'] + [', '.join(row) for row in alleles]     # turn list of alleles into a list of strings
+    w1 = len(max(loci, key=len))                      # max locus width
+    w2 = len(max(alleles, key=len))
+    ret = "%-*s      %-*s\n" % (w1, loci[0], w2, alleles[0])    # header row
+    ret += '-'*(w1+6+w2)+'\n'
+    for loc,allele in zip(loci[1:], alleles[1:]):
+        ret += "%-*s      %-*s\n" % (w1, loc, w2, allele)
+    return ret.rstrip()
+
+def params2string(params):
+    names = ['parameter'] + sorted(params.keys())
+    values, descriptions = ['value'], ['description']
+    for name in names[1:]:
+        v,d = params[name]
+        values.append(v)
+        descriptions.append(d)
+    values = [str(v) for v in values]
+    w1 = len(max(names, key=len))
+    w2 = len(max(values, key=len))
+    w3 = len(max(descriptions, key=len))
+    ret = "%-*s    %-*s      %-*s\n" % (w1, names[0], w2, values[0], w3, descriptions[0])
+    ret += '-'*(w1+4+w2+6+w3)+'\n'
+    for name,value,desc in zip(names[1:], values[1:], descriptions[1:]):
+        ret += "%-*s    %-*s      %-*s\n" % (w1, name, w2, value, w3, desc)
+    return ret.rstrip()
+        
+def add_preferences(params, prefs):
+    for pref,vdict in sorted(prefs.items()):
+        for cue,val in sorted(vdict.items()):
+            params['pr_{0}_{1}'.format(pref,cue).lower()] = (val, 'rejection probability')
+    return params
+
+def configure_locals(LOCI, ALLELES, parameters):
+    config = {}
+    config['LOCI'] = LOCI
+    config['ALLELES'] = ALLELES
+    config['ADICT'] = make_allele_dictionary(LOCI, ALLELES)
+    #~ config['LABELS'] = panda_index(ALLELES, LOCI)   # use this as index for conversion of freqs to pd.Series
+    config['FSHAPE'] = list_shape(ALLELES)          # shape of frequencies
+    repro_axes = reproduction_axes(LOCI)
+    config['REPRO_AXES'] = repro_axes  # axes for the reproduction step, used for automatic extension of arrays to the correct shape by inserting np.newaxis
+    config['N_LOCI'] = len(LOCI)
+    pops = ALLELES[0]
+    config['POPULATIONS'] = pops              # shortcut for faster access to populations
+    config['N_POPS'] = len(pops)             # number of populations within metapopulations
+    config['REPRO_DIM'] = len(repro_axes)
+    for name,(value,desc) in parameters.items():
+        config[name] = value
+    return config
+
 def list_shape(list2d):
     """
     Return the `shape` of a 2-dimensional nested list.
