@@ -1,40 +1,65 @@
-import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pprint, datetime
+# -*- coding: utf-8 -*-
+# <nbformat>3.0</nbformat>
+
+# <headingcell level=1>
+
+# Scenario 1
+
+# <markdowncell>
+
+# First, we import required python modules.
+
+# <codecell>
+
+import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pprint, datetime, pdb
 sys.path.append(".")             # pyreport needs this to know where to import modules from
 import numpy as np
 import numpy.random as npr
 import pandas as pd
 import matplotlib.pyplot as plt
-from pylab import show, close          # pyreport needs this to find figures
+# wspec moduls:
 import core, storage
 import visualization as viz
 import utilities as utils
-import pdb
+
 for mod in [core,storage,utils,viz]:
     reload(mod)
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
 
+# <markdowncell>
 
-#! .. contents:: :depth: 5
+# ## Configuration
+# 
+# To configure the simulation scenario, we need to specify gene loci, alleles, and parameters.
+# 
+# ### Loci and alleles
 
-#!
-#! .. sectnum:: :depth: 5
-#!
-#$ \newpage
-#! Configuration
-#!======================================================================
-#! Loci and alleles
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# <codecell>
+
 LOCI = ['population', 'trait', 'preference']
-ALLELES = [['pop1'], \
+ALLELES = [['pop1', 'pop2'], \
            ['T1', 'T2'], \
            ['P1', 'P2']
           ]
+
+# <markdowncell>
+
+# Let us print these again:
+
+# <codecell>
+
 loc_width = len(max(LOCI, key=len))
+print "%-*s   \t%s" % (loc_width, 'locus', 'alleles')
+print '-'*30
 for i,loc in enumerate(LOCI):
-    print "%-*s  :\t%s" % (loc_width, loc, ', '.join(ALLELES[i]))
-    
-#! Parameters
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    print "%-*s   \t%s" % (loc_width, loc, ', '.join(ALLELES[i]))
+
+# <headingcell level=3>
+
+# Parameters
+
+# <codecell>
+
 selection_coefficient = s = 1.      # T1 in pop1, T2 in pop2, etc.
 transition_probability = pt = 0.95   # probability of transition into another mating round
 trait_preferences = {
@@ -44,14 +69,23 @@ trait_preferences = {
 introduction_frequency = intro = 0.05        # introduction frequency of preference mutant allele
 threshold = 5e-3                   # equilibrium threshold
 parameters = dict(s=s, pt=pt, intro=intro, threshold=threshold)           # dictionary for storing simulation
+
+# <markdowncell>
+
+# Print the parameters:
+
+# <codecell>
+
 for i,(pref,vdict) in enumerate(sorted(trait_preferences.items())):
     for j,(cue,val) in enumerate(sorted(vdict.items())):
         parameters['pr_t{0}_{1}'.format(i,j+1)] = val
 par_width = len(max(parameters.keys(), key=len))
+print "%-*s   \t%s" % (par_width, 'parameter', 'value')
+print '-'*30
 for p,v in sorted(parameters.items()):
-    print "%-*s  :\t%s" % (par_width, p, v)
-print
+    print "%-*s   \t%s" % (par_width, p, v)
 
+# <codecell>
 
 # setting up scenario config
 def configure():
@@ -305,3 +339,4 @@ figs.append(fig)
 show()
 
 rstore.close()
+
