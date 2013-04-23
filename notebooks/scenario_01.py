@@ -5,26 +5,33 @@
 
 # Scenario 1
 
-# <markdowncell>
-
-# First, we import required python modules.
-
 # <codecell>
 
 import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pprint, datetime, pdb
-sys.path.append(".")             # pyreport needs this to know where to import modules from
 import numpy as np
 import numpy.random as npr
 import pandas as pd
 import matplotlib.pyplot as plt
+from IPython.core.display import Image
 # wspec moduls:
 import core, storage
 import visualization as viz
 import utilities as utils
-
-for mod in [core,storage,utils,viz]:
+for mod in [core,storage,utils,viz]:     # reload the wspec modules in case the code has changed
     reload(mod)
+    
 np.set_printoptions(precision=4, suppress=True, linewidth=200)
+
+# <markdowncell>
+
+# This scenario has the following features:
+# 
+# * single population
+# * a neutral trait T0 and a preference allele P0 (non-discriminating) are fixed
+# * a new, adaptive trait T1 is introduced
+# * a preference for this trait is introduced: P1 (T1); this may happend after the introduction of T1 or simultaneosuly with it
+# 
+# <img src="files/images/setup_01.png">
 
 # <markdowncell>
 
@@ -33,6 +40,10 @@ np.set_printoptions(precision=4, suppress=True, linewidth=200)
 # To configure the simulation scenario, we need to specify gene loci, alleles, and parameters.
 # 
 # ### Loci and alleles
+# 
+# Populations are treated as loci, as would be the cytotype. In numpy terms, each locus is represented by an array axis.
+# 
+# We keep separate lists rather than a dictionary because we need to preserve the locus and allele orders.
 
 # <codecell>
 
@@ -41,18 +52,7 @@ ALLELES = [['pop1', 'pop2'], \
            ['T1', 'T2'], \
            ['P1', 'P2']
           ]
-
-# <markdowncell>
-
-# Let us print these again:
-
-# <codecell>
-
-loc_width = len(max(LOCI, key=len))
-print "%-*s   \t%s" % (loc_width, 'locus', 'alleles')
-print '-'*30
-for i,loc in enumerate(LOCI):
-    print "%-*s   \t%s" % (loc_width, loc, ', '.join(ALLELES[i]))
+print utils.loci2string(LOCI, ALLELES)
 
 # <headingcell level=3>
 
@@ -60,137 +60,155 @@ for i,loc in enumerate(LOCI):
 
 # <codecell>
 
-selection_coefficient = s = 1.      # T1 in pop1, T2 in pop2, etc.
-transition_probability = pt = 0.95   # probability of transition into another mating round
-trait_preferences = {
+PARAMETERS = {
+    's': (1., 'selection coefficient'),           # selection advantage for adaptive trait
+    'pt': (0.95, 'transition probability'),       # probability of transition into another mating round
+    'intro': (0.05, 'introduction frequency'),    # introduction frequency of preference mutant allele
+    'eq': (5e-3, 'equilibrium threshold')                     # equilibrium threshold
+}
+# For mating preference parameters, we use a different notation:
+trait_preferences = {                        # female mating preferences (rejection probabilities)
     'P1': {'baseline': 0.5, 'T1': 0.}, \
     'P2': {'baseline': 0.5, 'T2': 0.}
-    }
-introduction_frequency = intro = 0.05        # introduction frequency of preference mutant allele
-threshold = 5e-3                   # equilibrium threshold
-parameters = dict(s=s, pt=pt, intro=intro, threshold=threshold)           # dictionary for storing simulation
+}
+PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
+print utils.params2string(PARAMETERS)
 
 # <markdowncell>
 
-# Print the parameters:
+# Update local variables so we can directly use loci, alleles, and parameters:
 
 # <codecell>
 
-for i,(pref,vdict) in enumerate(sorted(trait_preferences.items())):
-    for j,(cue,val) in enumerate(sorted(vdict.items())):
-        parameters['pr_t{0}_{1}'.format(i,j+1)] = val
-par_width = len(max(parameters.keys(), key=len))
-print "%-*s   \t%s" % (par_width, 'parameter', 'value')
-print '-'*30
-for p,v in sorted(parameters.items()):
-    print "%-*s   \t%s" % (par_width, p, v)
-
-# <codecell>
-
-# setting up scenario config
-def configure():
-    config = {}
-    config['LOCI'] = LOCI
-    config['ALLELES'] = ALLELES
-    config['ADICT'] = utils.make_allele_dictionary(LOCI, ALLELES)
-    #~ config['LABELS'] = panda_index(ALLELES, LOCI)   # use this as index for conversion of freqs to pd.Series
-    config['FSHAPE'] = utils.list_shape(ALLELES)          # shape of frequencies
-    repro_axes = utils.reproduction_axes(LOCI)
-    config['REPRO_AXES'] = repro_axes  # axes for the reproduction step, used for automatic extension of arrays to the correct shape by inserting np.newaxis
-    config['N_LOCI'] = len(LOCI)
-    pops = ALLELES[0]
-    config['POPULATIONS'] = pops              # shortcut for faster access to populations
-    config['N_POPS'] = len(pops)             # number of populations within metapopulations
-    config['REPRO_DIM'] = len(repro_axes)
-    return config
-config = configure()           # dictionary for storing simulation
+config = utils.configure_locals(LOCI, ALLELES, PARAMETERS)
 locals().update(config)
+# pprint.pprint( sorted(config.items()) )
 
-        
-#! Weights
-#!======================================================================
-weights = {}           # dictionary for storing simulation
+# <headingcell level=2>
 
-#! Viability selection
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-viab = np.array([[   1,  1+s]], float)
-VS = core.ViabilityWeight(name='viability selection', \
-                          axes=['population','trait'], \
-                          config=config, \
-                          arr=viab, \
-                          s=selection_coefficient
-                         )
+# Weights
+
+# <markdowncell>
+
+# All weights for the different stages of the simulation are stored in a dictionary.
+
+# <codecell>
+
+weights = {
+    'migration': None, \
+    'viability_selection': None, \
+    'dynamic_reproduction': []
+}
+
+# <markdowncell>
+
+# We now define all the weights we use in the simulation.
+# These are in principal `ndarrays` that can be automatically extended to the appropriate dimensions by insertion of `np.newaxis` at the required positions.
+# The extended weights are denoted by a trailing underscore.
+# For printing, `panda.Series` are used.
+
+# <headingcell level=3>
+
+# Viability selection
+
+# <codecell>
+
+vsarr = np.array(
+    [[   1,  1+s], \
+     [ 1+s,    1]], float
+)
+VS = core.ViabilityWeight(
+    name='viability selection', \
+    axes=['population','trait'], \
+    config=config, \
+    arr=vsarr, \
+    s=s
+)
 weights['viability_selection'] = VS.extended()
 print VS
 
-#! Sexual selection (female mating preference)
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#! These weights are frequency-dependent. Their final states can be found
-#! in section `Dynamic weights (final states)`_.
-#!
-weights['dynamic_reproduction'] = []
-#! Trait preference
-#!----------------------------------------------------------------------
-TP = core.GeneralizedPreferenceWeight(name='trait preference', \
-                           axes=['population', 'female_preference', 'male_trait'], \
-                           pref_desc = trait_preferences, \
-                           config=config, \
-                           unstack_levels=[2], \
-                           pt=transition_probability, \
-                          )
+# <headingcell level=3>
+
+# Sexual selection (female mating preference)
+
+# <markdowncell>
+
+# These weights are frequency-dependent. Their final states can be found in section `Dynamic weights (final states)`.
+
+# <headingcell level=4>
+
+# Trait preference
+
+# <codecell>
+
+TP = core.GeneralizedPreferenceWeight(
+    name='trait preference', \
+    axes=['population', 'female_preference', 'male_trait'], \
+    pref_desc = trait_preferences, \
+    config=config, \
+    unstack_levels=[2], \
+    pt=pt
+)
 weights['dynamic_reproduction'].append( (TP, ['trait']) )
 print TP
 
-#! Reproduction
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#! Nuclear inheritance
-#!----------------------------------------------------------------------
-#! Preference locus
-#!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be didplayed
-IP = core.ReproductionWeight(name='preference inheritance', \
-                             axes=['female_preference', 'male_preference', 'offspring_preference'], \
-                             config=config, \
-                             unstack_levels=[2], \
-                            )
+# <headingcell level=3>
+
+# Reproduction
+
+# <headingcell level=4>
+
+# Nuclear inheritance
+
+# <headingcell level=5>
+
+# Preference locus
+
+# <codecell>
+
+IP = core.ReproductionWeight(
+    name='preference inheritance', \
+    axes=['female_preference', 'male_preference', 'offspring_preference'], \
+    config=config, \
+    unstack_levels=[2]
+)
 n_alleles = len(ALLELES[LOCI.index('preference')])
 IP.set( utils.nuclear_inheritance(n_alleles) )
 IP_ = IP.extended()
 print IP
 
-#! Trait locus
-#!......................................................................
-#$ ~    % we need this non-beaking space because the paragraph would otherwise be empty and the paragraph title would not be displayed
-IT = core.ReproductionWeight(name='trait inheritance', \
-                             axes=['female_trait', 'male_trait', 'offspring_trait'], \
-                             config=config, \
-                             unstack_levels=[2], \
-                            )
+# <headingcell level=5>
+
+# Trait locus
+
+# <codecell>
+
+IT = core.ReproductionWeight(
+    name='trait inheritance', \
+    axes=['female_trait', 'male_trait', 'offspring_trait'], \
+    config=config, \
+    unstack_levels=[2]
+)
 n_alleles = len(ALLELES[LOCI.index('trait')])
 IT.set( utils.nuclear_inheritance(n_alleles) )
 IT_ = IT.extended()
 print IT
 
+# <markdowncell>
 
-# we can combine all reproduction weights that are not frequency-dependent:
+# We can combine all reproduction weights that are not frequency-dependent:
+
+# <codecell>
+
 R_ = IP_ * IT_
 weights['constant_reproduction'] = R_
 
-    
-#! Simulation
-#!======================================================================
-desc = """
-- 1 population
-- a different trait adaptive in each population (T1 in pop.1, T2 in pop.2, ...)
-- hybrid males are fully sterile due to divergence at several loci (A, B, and C):
-  Orr (1995): A1-B1, A0-C1, B1-C1, ... males are sterile
-  in addition, there was another mutation at the Clocus in pop.s 3+4: C2, 
-  resulting in some symmetric incompatibilities
-- rather weak behavioral divergence at mating preference locus: P1 (T1/T2), P2 (T3/T4)
-- alocus and trait locus may be linked
-- allele P3 (stronger preference for T2) is introduced at equilibrium in pop.2
-- simulation is over when the final equilibrium has been reached
-"""
+# <headingcell level=2>
+
+# Simulation
+
+# <codecell>
+
 snum = 38
 rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
 rnum = 1
