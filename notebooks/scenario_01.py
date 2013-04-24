@@ -20,7 +20,7 @@ import utilities as utils
 for mod in [core,storage,utils,viz]:     # reload the wspec modules in case the code has changed
     reload(mod)
     
-np.set_printoptions(precision=4, suppress=True, linewidth=200)
+np.set_printoptions(precision=4, suppress=True, linewidth=100)
 
 # <markdowncell>
 
@@ -97,6 +97,7 @@ locals().update(config)
 weights = {
     'migration': None, \
     'viability_selection': None, \
+    'constant_reproduction': None, \
     'dynamic_reproduction': []
 }
 
@@ -209,152 +210,182 @@ weights['constant_reproduction'] = R_
 
 # <codecell>
 
-snum = 38
-rstore = storage.RunStore('/extra/flor/data/scenario_{0}.h5'.format(snum))
-rnum = 1
+snum = 1     # scenario number
+rnum = 1     # number of simulation run
+n = 100    # max number of generations to iterate for each stage of the simulation
+step = 10    # store metapopulation state every `step` generations
+figsize = [15,7]
+
+# <markdowncell>
+
+# Simulation run data is stored in an HDF5 file (`storage.RunStore` basically is a wrapper around an `h5py.File` object):
+
+# <codecell>
+
+rstore = storage.RunStore('data/scenario_{0}.h5'.format(snum))
 try: rstore.select_scenario(snum, verbose=False)
-except: rstore.create_scenario(snum, labels=(LOCI,ALLELES), description=desc)
+except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
 try: rstore.remove_run(rnum, snum)
 except: pass
-rstore.init_run(rnum, parameters, FSHAPE, init_len=100)
+rstore.init_run(rnum, PARAMETERS, FSHAPE, init_len=100)
 
-#~ mode = None
-mode = 'report'      # create a report with pyreport
-def print_report():
-    print 'Simulation run completed:'
-    seconds = time.time()-starttime
-    hhmmss = str(datetime.timedelta(seconds=int(seconds)))
-    print 'Generation: {0}\nElapsed Time: {1}'.format(metapop.generation, hhmmss)
-    pergen = seconds / metapop.generation
-    hhmmss = str(datetime.timedelta(seconds=int(pergen)))
-    print 'Time per generation: {0})'.format(hhmmss)
+# <headingcell level=3>
 
-if mode == 'report':
-    progress = False
-else:
-    progress = True
+# Initial state
 
-n = 20000
-step = 10
-figs = []
-figsize = [20,11]
+# <codecell>
 
-#! Start
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+starttime = time.time()                  # take time for timing report after simulation run
+
 startfreqs = np.zeros(FSHAPE)
-startfreqs[0,0,0] = 1.                   # pop1-T1-P1
-starttime = time.time()
-metapop = core.MetaPopulation(startfreqs, config=config, generation=0, name='metapopulation')
+startfreqs[0,0,0] = 1.                   # pop1-T0-P0
+startfreqs[1,0,0] = 1.                   # pop2-T0-P0
+# initialize metapopulation with start frequencies:
+metapop = core.MetaPopulation(
+    startfreqs, \
+    config=config, \
+    generation=0, \
+    name='metapopulation'
+)
+# store initial state in database:
 rstore.record_special_state(metapop.generation, 'start')
-#~ pdb.set_trace()
 rstore.dump_data(metapop)
-#! Plot
-#!----------------------------------------------------------------------
-fig = rstore.plot_overview(generation=metapop.generation, figsize=figsize)
-figs.append(fig)
-show()
-#! Nucleocytotype frequencies
-#!----------------------------------------------------------------------
+
+# <codecell>
+
 print metapop
-#! Locus overview
-#!----------------------------------------------------------------------
 print metapop.overview()
+fig = viz.plot_overview(metapop, show_generation=True, figsize=figsize)
 
-#! Migration-selection equilibrium
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
-#! Plot
-#!----------------------------------------------------------------------
-fig = rstore.plot_overview(generation=metapop.generation, figsize=figsize)
-figs.append(fig)
-show()
-#! Nucleocytotype frequencies
-#!----------------------------------------------------------------------
+# <headingcell level=3>
+
+# Migration-selection equilibrium
+
+# <markdowncell>
+
+# Run the simulation until an equilibrium is reached (but for `n` generations at most):
+
+# <codecell>
+
+metapop.run(
+    n, \
+    weights, \
+    threshold=eq, \
+    step=step, \
+    runstore=rstore, \
+    progress_bar=True
+)
+
+# <codecell>
+
 print metapop
-#! Locus overview
-#!----------------------------------------------------------------------
+print metapop.overview()
+fig = viz.plot_overview(metapop, show_generation=True, figsize=figsize)
 
-#! Introduction of trait allele T2
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# <headingcell level=3>
+
+# Introduction of trait allele T2
+
+# <codecell>
+
 intro_allele = 'T2'
 metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
 rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+
 print metapop
-#! Locus overview
-#!----------------------------------------------------------------------
 print metapop.overview()
 
+# <headingcell level=3>
 
-#! Equilibrium
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
-#! Plot
-#!----------------------------------------------------------------------
-fig = rstore.plot_overview(generation=metapop.generation, figsize=figsize)
-figs.append(fig)
-show()
-#! Nucleocytotype frequencies
-#!----------------------------------------------------------------------
+# Equilibrium
+
+# <codecell>
+
+metapop.run(
+    n, \
+    weights, \
+    threshold=eq, \
+    step=step, \
+    runstore=rstore, \
+    progress_bar=True
+)
+
+# <codecell>
+
 print metapop
-#! Locus overview
-#!----------------------------------------------------------------------
 print metapop.overview()
+fig = viz.plot_overview(metapop, show_generation=True, figsize=figsize)
 
+# <headingcell level=3>
 
-#! Introduction of preference allele P2
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# Introduction of preference allele P2
+
+# <codecell>
+
 intro_allele = 'P2'
 metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=True)
 rstore.dump_data(metapop)
 rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+
 print metapop
-#! Locus overview
-#!----------------------------------------------------------------------
 print metapop.overview()
 
+# <headingcell level=3>
 
-#! Final
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-progress = metapop.run(n, weights, threshold=threshold, step=step, runstore=rstore, progress=progress)
-#! Plot
-#!----------------------------------------------------------------------
-fig = rstore.plot_overview(generation=metapop.generation, figsize=figsize)
-figs.append(fig)
-show()
-#! Nucleocytotype frequencies
-#!----------------------------------------------------------------------
+# Final state
+
+# <codecell>
+
+metapop.run(
+    n, \
+    weights, \
+    threshold=eq, \
+    step=step, \
+    runstore=rstore, \
+    progress_bar=True
+)
+
+# <codecell>
+
 print metapop
-#! Locus overview
-#!----------------------------------------------------------------------
 print metapop.overview()
+fig = viz.plot_overview(metapop, show_generation=True, figsize=figsize)
 
-#! Runtime
-#!----------------------------------------------------------------------
-if mode == 'report':
-    print 'Simulation run completed:'
-    seconds = time.time()-starttime
-    hhmmss = str(datetime.timedelta(seconds=int(seconds)))
-    print 'Generation: {0} (Elapsed time: {1})'.format(metapop.generation, hhmmss)
-    print ' '
-    
-#! Dynamic weights (final states)
-#!======================================================================
-#! Sexual selection (final)
-#!^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#! Trait preference (final)
-#!----------------------------------------------------------------------
+# <headingcell level=3>
+
+# Dynamic weights (final states)
+
+# <codecell>
+
 print TP
 
-if not mode == 'report':
-    print_report()
-rstore.flush()
+# <headingcell level=3>
 
-#! Dynamics
-#!======================================================================
+# Runtime
+
+# <codecell>
+
+rstore.flush()
+print utils.timing_report(starttime, metapop.generation)
+
+# <headingcell level=2>
+
+# Population dynamics
+
+# <codecell>
+
 fig = rstore.plot_sums(figsize=figsize)
-figs.append(fig)
 show()
 
+# <codecell>
+
 rstore.close()
+
+# <codecell>
+
+import pymc as mc
+
+# <codecell>
+
 
