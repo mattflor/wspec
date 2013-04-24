@@ -11,6 +11,8 @@ from numpy import sum
 import matplotlib.pyplot as plt
 import pandas as pd
 from pprint import PrettyPrinter
+import time, datetime, uuid
+from IPython.core.display import HTML, Javascript, display
 
 def loci2string(loci, alleles):
     loci = ['locus'] + loci
@@ -63,6 +65,17 @@ def configure_locals(LOCI, ALLELES, parameters):
     for name,(value,desc) in parameters.items():
         config[name] = value
     return config
+
+def timing_report(starttime, generation):
+    s = 'Simulation run completed:\n'
+    seconds = time.time()-starttime
+    hhmmss = str(datetime.timedelta(seconds=int(seconds)))
+    s += 'Generation: {0}\nElapsed Time: {1}\n'.format(generation, hhmmss)
+    pergen = seconds / generation
+    hhmmss = str(datetime.timedelta(seconds=int(pergen)))
+    s += 'Time per generation: {0})'.format(hhmmss)
+    return s
+
 
 def list_shape(list2d):
     """
@@ -288,3 +301,17 @@ def get_alleles(loci, config):
         out: nested list of ints
     """
     return [config['ALLELES'][config['LOCI'].index(locus)] for locus in loci]
+
+divid = str(uuid.uuid4())
+
+pb = HTML(
+"""
+<div style="border: 1px solid black; width:500px">
+  <div id="%s" style="background-color:blue; width:0%%">&nbsp;</div>
+</div> 
+""" % divid)
+display(pb)
+for i in range(1,101):
+    time.sleep(0.1)
+    
+    display(Javascript("$('div#%s').width('%i%%')" % (divid, i)))

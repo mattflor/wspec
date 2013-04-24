@@ -10,12 +10,12 @@ import sys
 import numpy as np
 import pandas as pd
 import utilities as utils
-import progressbar as pbar
+#~ import progressbar as pbar
+from progressbar import ProgressBar
 extend = utils.extend
 myfloat = utils.myfloat
 sum_along_axes = utils.sum_along_axes
 import pdb
-reload(pbar)
 
 class Weight(object):
     """
@@ -322,7 +322,7 @@ class GeneralizedPreferenceWeight(ReproductionWeight):
         self.array = np.nan_to_num( (1.-rej)/norm[...,np.newaxis] )
     
     def __str__(self):
-        s = Weight.__str__(self) + '\n'
+        s = Weight.__str__(self) + '\n\n'
         ndim = self.rprobs.ndim
         s += '{0}:\n{1}\n'.format( self.rpanda.name, self.rpanda.unstack([1]*(ndim-1)) )
         #~ s += 'rejection probabilities:\n'
@@ -339,14 +339,15 @@ class DummyProgressBar(object):
     def finish(self):
         pass
     
-def generate_progressbar(progress_type='real'):
-    if progress_type == 'real':
-        widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
-        return pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
-    elif progress_type == 'dummy':
-        return DummyProgressBar()
-    else:
-        raise TypeError, "progress_type `{0}` unknown; use `real` or `dummy` instead".format(progress_type)
+#~ def generate_progressbar(progress_type='real'):
+    #~ if progress_type == 'real':
+        #~ pbar = ProgressBar(self._iter)
+        #~ widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
+        #~ return pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
+    #~ elif progress_type == 'dummy':
+        #~ return DummyProgressBar()
+    #~ else:
+        #~ raise TypeError, "progress_type `{0}` unknown; use `real` or `dummy` instead".format(progress_type)
 
 class MetaPopulation(object):
     def __init__(self, frequencies, config, generation=0, name='metapopulation', eq='undetermined'):
@@ -403,7 +404,6 @@ class MetaPopulation(object):
         """
         s = ''
         if not args:
-        
             args = self.loci[1:]
         for a in args:
             if isinstance(a, list):
@@ -565,16 +565,16 @@ class MetaPopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, n, weights, step=100, threshold=1e-4, runstore=None, progress=True):
+    def run(self, n_max, weights, step=100, threshold=1e-4, runstore=None, progress_bar=True):
         """
-        Simulate next `n` generations. Abort if average overall difference 
+        Simulate next `n_max` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
         an equilibrium has been reached).
                 
         Args:
             weights: dictionary of weights to be used in the calculation
                      of the next generation frequencies
-            n: int
+            n_max: int
                 maximum number of generations to run
             step: int
                 frequencies are stored every `step` generations
@@ -600,21 +600,17 @@ class MetaPopulation(object):
         #~ pt = SR.pt
         
         self.runstore = runstore
-        n += self.generation
+        n = n_max + self.generation
         thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
         
         still_changing = True
-        if isinstance(progress, (pbar.ProgressBar, DummyProgressBar)):
-            pass   # reuse progressbar
-        elif progress is False:
-            progress = generate_progressbar('dummy')
-        elif progress is True:
-            progress = generate_progressbar('real')
-            #~ widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
-            #~ progress = pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval! , fd=sys.stdout
+        i = 0
+        if progress_bar is True:
+            pbar = ProgressBar(n_max)
         else:
-            raise TypeError, "`progress` must be True, False, or an existing progressbar instance"
-        while still_changing and self.generation < n:
+            pbar = None
+        
+        while still_changing and i < n_max:
             # data storage:
             if self.runstore != None:
                 if self.generation % step == 0:
@@ -654,11 +650,17 @@ class MetaPopulation(object):
                                          REPRO_DYN, self.repro_idxs['offspring'] )
             self.normalize()
             
+            i += 1
             self.generation += 1
-            progress.update(self.generation)
+            # update progress bar:
+            if pbar:
+                pbar.animate(i+1)
+            #~ progress.update(self.generation)
             still_changing = utils.diff(self.freqs, previous) > thresh
         
         self.eq = not still_changing
+        if pbar:
+            pbar.animate(n_max)
         if self.runstore != None:   # store final state
             self.runstore.dump_data(self)
             if self.eq:
@@ -667,5 +669,3 @@ class MetaPopulation(object):
                 state_desc = 'max'
             self.runstore.record_special_state(self.generation, state_desc)
 
-        # return ProgressBar instance so we can reuse it for further running:
-        return progress

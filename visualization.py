@@ -75,6 +75,16 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,8], **kwargs):
                 leg.get_frame().set_edgecolor('white')
     return fig
 
+def plot_overview(metapop, show_generation=True, figsize=[18,5]):
+    sums = metapop.all_sums()
+    loci = metapop.loci
+    alleles = metapop.alleles
+    if show_generation:
+        fig = stacked_bars(sums, loci, alleles, generation=metapop.generation, figsize=figsize)
+    else:
+        fig = stacked_bars(sums, loci, alleles, figsize=figsize)
+    return fig
+
 def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
     """
     Args:
