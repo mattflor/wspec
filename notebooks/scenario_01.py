@@ -29,7 +29,7 @@ np.set_printoptions(precision=4, suppress=True, linewidth=100)
 # * single population
 # * a neutral trait T0 and a preference allele P0 (non-discriminating) are fixed
 # * a new, adaptive trait T1 is introduced
-# * a preference for this trait is introduced: P1 (T1); this may happend after the introduction of T1 or simultaneosuly with it
+# * a preference for this trait is introduced: P1 (T1); this may happen after the introduction of T1 or simultaneosuly with it
 # 
 # <img src="files/images/setup_01.png">
 
@@ -48,8 +48,8 @@ np.set_printoptions(precision=4, suppress=True, linewidth=100)
 # <codecell>
 
 LOCI = ['population', 'trait', 'preference']
-ALLELES = [['pop1', 'pop2'], \
-           ['T1', 'T2'], \
+ALLELES = [['pop1', 'pop2'],
+           ['T1', 'T2'],
            ['P1', 'P2']
           ]
 print utils.loci2string(LOCI, ALLELES)
@@ -63,12 +63,12 @@ print utils.loci2string(LOCI, ALLELES)
 PARAMETERS = {
     's': (1., 'selection coefficient'),           # selection advantage for adaptive trait
     'pt': (0.95, 'transition probability'),       # probability of transition into another mating round
-    'intro': (0.05, 'introduction frequency'),    # introduction frequency of preference mutant allele
-    'eq': (5e-3, 'equilibrium threshold')                     # equilibrium threshold
+    'intro': (0.001, 'introduction frequency'),   # introduction frequency of preference mutant allele
+    'eq': (1e-6, 'equilibrium threshold')         # equilibrium threshold (total frequency change)
 }
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
-    'P1': {'baseline': 0.5, 'T1': 0.}, \
+    'P1': {'baseline': 0.5, 'T1': 0.},
     'P2': {'baseline': 0.5, 'T2': 0.}
 }
 PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
@@ -95,9 +95,9 @@ locals().update(config)
 # <codecell>
 
 weights = {
-    'migration': None, \
-    'viability_selection': None, \
-    'constant_reproduction': None, \
+    'migration': None,
+    'viability_selection': None,
+    'constant_reproduction': None,
     'dynamic_reproduction': []
 }
 
@@ -115,14 +115,14 @@ weights = {
 # <codecell>
 
 vsarr = np.array(
-    [[   1,  1+s], \
+    [[   1,  1+s],
      [ 1+s,    1]], float
 )
 VS = core.ViabilityWeight(
-    name='viability selection', \
-    axes=['population','trait'], \
-    config=config, \
-    arr=vsarr, \
+    name='viability selection',
+    axes=['population','trait'],
+    config=config,
+    arr=vsarr,
     s=s
 )
 weights['viability_selection'] = VS.extended()
@@ -143,11 +143,11 @@ print VS
 # <codecell>
 
 TP = core.GeneralizedPreferenceWeight(
-    name='trait preference', \
-    axes=['population', 'female_preference', 'male_trait'], \
-    pref_desc = trait_preferences, \
-    config=config, \
-    unstack_levels=[2], \
+    name='trait preference',
+    axes=['population', 'female_preference', 'male_trait'],
+    pref_desc = trait_preferences,
+    config=config,
+    unstack_levels=[2],
     pt=pt
 )
 weights['dynamic_reproduction'].append( (TP, ['trait']) )
@@ -168,9 +168,9 @@ print TP
 # <codecell>
 
 IP = core.ReproductionWeight(
-    name='preference inheritance', \
-    axes=['female_preference', 'male_preference', 'offspring_preference'], \
-    config=config, \
+    name='preference inheritance',
+    axes=['female_preference', 'male_preference', 'offspring_preference'],
+    config=config,
     unstack_levels=[2]
 )
 n_alleles = len(ALLELES[LOCI.index('preference')])
@@ -185,9 +185,9 @@ print IP
 # <codecell>
 
 IT = core.ReproductionWeight(
-    name='trait inheritance', \
-    axes=['female_trait', 'male_trait', 'offspring_trait'], \
-    config=config, \
+    name='trait inheritance',
+    axes=['female_trait', 'male_trait', 'offspring_trait'],
+    config=config,
     unstack_levels=[2]
 )
 n_alleles = len(ALLELES[LOCI.index('trait')])
@@ -242,9 +242,9 @@ startfreqs[0,0,0] = 1.                   # pop1-T0-P0
 startfreqs[1,0,0] = 1.                   # pop2-T0-P0
 # initialize metapopulation with start frequencies:
 metapop = core.MetaPopulation(
-    startfreqs, \
-    config=config, \
-    generation=0, \
+    startfreqs,
+    config=config,
+    generation=0,
     name='metapopulation'
 )
 # store initial state in database:
@@ -268,12 +268,13 @@ fig = viz.plot_overview(metapop, show_generation=True, figsize=figsize)
 # <codecell>
 
 metapop.run(
-    n, \
-    weights, \
-    threshold=eq, \
-    step=step, \
-    runstore=rstore, \
-    progress_bar=True
+    n, 
+    weights, 
+    thresh_total=eq, 
+    step=step, 
+    runstore=rstore, 
+    progress_bar=False, 
+    verbose=True
 )
 
 # <codecell>
@@ -303,12 +304,13 @@ print metapop.overview()
 # <codecell>
 
 metapop.run(
-    n, \
-    weights, \
-    threshold=eq, \
-    step=step, \
-    runstore=rstore, \
-    progress_bar=True
+    n,
+    weights,
+    thresh_total=eq,
+    step=step,
+    runstore=rstore,
+    progress_bar=True,
+    verbose=True
 )
 
 # <codecell>
@@ -338,12 +340,13 @@ print metapop.overview()
 # <codecell>
 
 metapop.run(
-    n, \
-    weights, \
-    threshold=eq, \
-    step=step, \
-    runstore=rstore, \
-    progress_bar=True
+    n,
+    weights,
+    thresh_total=eq,
+    step=step,
+    runstore=rstore,
+    progress_bar=True,
+    verbose=True
 )
 
 # <codecell>
@@ -381,11 +384,4 @@ show()
 # <codecell>
 
 rstore.close()
-
-# <codecell>
-
-import pymc as mc
-
-# <codecell>
-
 
