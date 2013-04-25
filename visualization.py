@@ -1,3 +1,4 @@
+import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.random as npr
@@ -6,6 +7,13 @@ from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 import colorbrewer as cb
 from mpltools import color
+
+# bbox_inches='tight' issue (https://github.com/matplotlib/matplotlib/issues/688) seems
+# to be resolved in version 1.3.x:
+required = np.array( [1, 3, 0], dtype=np.int )
+# check matplotlib version:
+installed = np.array( mpl.__version__.split('.') ).astype(np.int)
+req_mpl_available = utils.version_check(installed, required)   # boolean
 
 legend_font = FontProperties()
 legend_font.set_size('small')
@@ -70,7 +78,10 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,8], **kwargs):
                 ax.set_xlim(0,xmax)
                 ax.set_ylim(-0.03,1.03)           # all data to plot are frequencies, i.e. between 0 and 1
             if i == npops-1:    # one legend is enough
-                leg = ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01))   # legend outside of axes at the right
+                if req_mpl_available:
+                    leg = ax.legend(loc='upper left', bbox_to_anchor=(1.01, 1.01))   # legend outside of axes at the right
+                else:
+                    leg = ax.legend(loc='upper right')   # legend inside of rightmost axes (would be cropped in ipython notebook otherwise)
                 leg.get_frame().set_alpha(0) # this will make the box totally transparent
                 leg.get_frame().set_edgecolor('white')
     return fig
@@ -117,7 +128,11 @@ def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
     # prepare figure and axes and plot:
     fig = plt.figure(figsize=figsize)
     if generation is not None:
-        fig.text(0.94, 0.02, 'Generation: {0}'.format(generation), fontsize=12, ha='right', va='bottom', rotation='horizontal')
+        if req_mpl_available:
+            bottom_text = 0.02
+        else:
+            bottom_text = 0.05
+        fig.text(0.94, bottom_text, 'Generation: {0}'.format(generation), fontsize=12, ha='right', va='bottom', rotation='horizontal')
     fig.subplots_adjust(wspace=0.1, hspace=0.1, left=0.05, right=0.94, top=0.91, bottom=0.12)
     #~ fig.subplots_adjust(bottom=0.3)
     for i,pop in enumerate(pops):
@@ -145,7 +160,10 @@ def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
             for idx in cumshape:   # add empty entries between loci for better overview of legend
                 labels.insert(idx, ' ')
                 handles.insert(idx, empty_rect)
-            leg = plt.legend(handles, labels, loc="upper left", bbox_to_anchor=(1.01, 1.01), prop=legend_font)
+            if req_mpl_available:
+                leg = plt.legend(handles, labels, loc="upper left", bbox_to_anchor=(1.01, 1.01), prop=legend_font)
+            else:
+                leg = plt.legend(handles, labels, loc="upper right", prop=legend_font)
             leg.get_frame().set_alpha(0) # this will make the box totally transparent
             leg.get_frame().set_edgecolor('white')
     fig.autofmt_xdate()    # automatic label rotation

@@ -656,7 +656,7 @@ class MetaPopulation(object):
             
             i += 1
             self.generation += 1
-            freq_diff = utils.diff(self.freqs, previous_freqs)
+            freq_diff = utils.total_diff(self.freqs, previous_freqs)
             diff_change = freq_diff - previous_diff
             
             # update progress bar:

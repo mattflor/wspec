@@ -11,15 +11,24 @@ from numpy import sum
 import matplotlib.pyplot as plt
 import pandas as pd
 from pprint import PrettyPrinter
-import time, datetime, uuid
+import time, datetime, uuid, sys
 from IPython.core.display import HTML, Javascript, display
 
-import sys, time
 try:
     from IPython.core.display import clear_output
     have_ipython = True
 except ImportError:
     have_ipython = False
+    
+def version_check(installed, required):
+    if np.size(installed) == 1:
+        return np.alltrue(installed >= required)
+    elif installed[0] > required[0]:
+        return True
+    elif installed[0] < required[0]:
+        return False
+    else:
+        return version_check(installed[1:], required[1:])
 
 def ProgressBar(endval, progress_type='linear'):
     if progress_type in ['linear', 'lin']:
