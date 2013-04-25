@@ -1,9 +1,4 @@
-"""
-A simple progress bar that should work reasonably well in an ipython
-notebook.
 
-Taken from the pymc package.
-"""
 
 import sys, time
 try:
@@ -13,6 +8,12 @@ except ImportError:
     have_ipython = False
 
 class ProgressBar:
+    """
+    A simple progress bar that should work reasonably well in an ipython
+    notebook.
+
+    Taken from the pymc package.
+    """
     def __init__(self, iterations):
         self.iterations = iterations
         self.prog_bar = '[]'
@@ -33,11 +34,12 @@ class ProgressBar:
         # time.sleep(0.5)
 
     def animate_ipython(self, iter):
-        try:
-            clear_output()
-        except Exception:
-            # terminal IPython has no clear_output
-            pass
+        #~ try:
+            #~ clear_output()
+        #~ except Exception:
+            #~ # terminal IPython has no clear_output
+            #~ pass
+        clear_output()
         print '\r', self,
         sys.stdout.flush()
         self.update_iteration(iter)

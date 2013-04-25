@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import utilities as utils
 #~ import progressbar as pbar
-from progressbar import ProgressBar
 extend = utils.extend
 myfloat = utils.myfloat
 sum_along_axes = utils.sum_along_axes
@@ -606,9 +605,10 @@ class MetaPopulation(object):
         still_changing = True
         i = 0
         if progress_bar is True:
-            pbar = ProgressBar(n_max)
+            #~ progress = utils.ProgressBar(n_max)
+            progress = utils.ProgressBar(thresh, progress_type='log')
         else:
-            pbar = None
+            progress = None
         
         while still_changing and i < n_max:
             # data storage:
@@ -652,15 +652,16 @@ class MetaPopulation(object):
             
             i += 1
             self.generation += 1
+            freq_diff = utils.diff(self.freqs, previous)
             # update progress bar:
-            if pbar:
-                pbar.animate(i+1)
+            if progress:
+                progress.animate(i, freq_diff)
             #~ progress.update(self.generation)
-            still_changing = utils.diff(self.freqs, previous) > thresh
+            still_changing = freq_diff > thresh
         
         self.eq = not still_changing
-        if pbar:
-            pbar.animate(n_max)
+        if progress:
+            progress.animate(n_max, freq_diff)
         if self.runstore != None:   # store final state
             self.runstore.dump_data(self)
             if self.eq:

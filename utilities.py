@@ -14,6 +14,98 @@ from pprint import PrettyPrinter
 import time, datetime, uuid
 from IPython.core.display import HTML, Javascript, display
 
+import sys, time
+try:
+    from IPython.core.display import clear_output
+    have_ipython = True
+except ImportError:
+    have_ipython = False
+
+class ProgressBar:
+    """
+    A simple progress bar that should work reasonably well in an ipython
+    notebook.
+
+    Taken from the pymc package, slightly modified.
+    """
+    def __init__(self, iterations, progress_type='lin'):
+        self.prog_type = progress_type
+        if progress_type == 'lin':
+            self.iterations = iterations
+        elif progress_type == 'log':
+            self.iterations = (-1)*np.log10(iterations)
+        self.prog_bar = '[]'
+        self.fill_char = '*'
+        self.width = 40
+        self.__update_amount(0)
+        if have_ipython:
+            self.animate = self.animate_ipython
+        else:
+            self.animate = self.animate_noipython
+
+    def animate_noipython(self, i, diff=None):
+        if sys.platform.lower().startswith('win'):
+            print self, '\r',
+        else:
+            print self, chr(27) + '[A'
+        self.update_iteration(i)
+        # time.sleep(0.5)
+
+    #~ def animate_ipython(self, i, diff=None):
+        try:
+            clear_output()
+        except Exception:
+            # terminal IPython has no clear_output
+            pass
+        #~ clear_output()
+        #~ print '\r', self,
+        #~ sys.stdout.flush()
+        #~ if self.prog_type == 'lin':
+            #~ self.update_iteration(i, diff)
+        #~ elif self.prog_type == 'log':
+            #~ self.update_iteration(diff)
+    
+    def animate_ipython(self, g, diff):
+        #~ try:
+            #~ clear_output()
+        #~ except Exception:
+            #~ # terminal IPython has no clear_output
+            #~ pass
+        clear_output()
+        print '\r', self,
+        sys.stdout.flush()
+        self.update_iteration(g, diff)
+
+    #~ def update_iteration(self, elapsed, diff=None):
+        #~ self.__update_amount((elapsed / float(self.iterations)) * 100.0)
+        #~ self.prog_bar += ' gen.  %d of max. %s' % (elapsed, self.iterations)
+        #~ if diff:
+            #~ self.prog_bar += ' (diff %f)' % diff
+    
+    def update_iteration(self, g, diff):
+        if self.prog_type == 'lin':
+            self.__update_amount((g / float(self.iterations)) * 100.0)
+            self.prog_bar += ' gen. %d of max. %s' % (g, self.iterations)
+        elif self.prog_type == 'log':
+            diff = max(diff, self.iterations)   # prevent diff=0. problem
+            log_diff = (-1)*np.log10(diff)
+            self.__update_amount((log_diff / float(self.iterations)) * 100.0)
+            self.prog_bar += ' diff. %g (thresh. %g)' % (diff, self.iterations)
+
+    def __update_amount(self, new_amount):
+        percent_done = int(round((new_amount / 100.0) * 100.0))
+        all_full = self.width - 2
+        num_hashes = int(round((percent_done / 100.0) * all_full))
+        self.prog_bar = '[' + self.fill_char * num_hashes + ' ' * (all_full - num_hashes) + ']'
+        pct_place = (len(self.prog_bar) / 2) - len(str(percent_done))
+        pct_string = '%d%%' % percent_done
+        self.prog_bar = self.prog_bar[0:pct_place] + \
+            (pct_string + self.prog_bar[pct_place + len(pct_string):])
+
+    def __str__(self):
+        return str(self.prog_bar)
+
+
 def loci2string(loci, alleles):
     loci = ['locus'] + loci
     alleles = ['alleles'] + [', '.join(row) for row in alleles]     # turn list of alleles into a list of strings
@@ -301,17 +393,4 @@ def get_alleles(loci, config):
         out: nested list of ints
     """
     return [config['ALLELES'][config['LOCI'].index(locus)] for locus in loci]
-
-divid = str(uuid.uuid4())
-
-pb = HTML(
-"""
-<div style="border: 1px solid black; width:500px">
-  <div id="%s" style="background-color:blue; width:0%%">&nbsp;</div>
-</div> 
-""" % divid)
-display(pb)
-for i in range(1,101):
-    time.sleep(0.1)
     
-    display(Javascript("$('div#%s').width('%i%%')" % (divid, i)))
