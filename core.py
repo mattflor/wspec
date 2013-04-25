@@ -564,7 +564,7 @@ class MetaPopulation(object):
             self.generation += 1
         self.eq = 'not determined'
     
-    def run(self, n_max, weights, step=100, threshold=1e-4, runstore=None, progress_bar=True):
+    def run(self, n_max, weights, step=100, thresh_total=1e-6, thresh_ind= None, n_min=50, runstore=None, progress_bar=True, verbose=True):
         """
         Simulate next `n_max` generations. Abort if average overall difference 
         between consecutive generations is smaller than `threshold` (i.e.
@@ -600,25 +600,29 @@ class MetaPopulation(object):
         
         self.runstore = runstore
         n = n_max + self.generation
-        thresh = threshold/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
+        #~ thresh = threshold
+        if thresh_ind is None:
+            thresh_ind = thresh_total/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
         
         still_changing = True
+        freq_diff = 0.
         i = 0
         if progress_bar is True:
             #~ progress = utils.ProgressBar(n_max)
-            progress = utils.ProgressBar(thresh, progress_type='log')
+            progress = utils.ProgressBar(thresh_total, progress_type='log')
         else:
             progress = None
         
-        while still_changing and i < n_max:
+        while (still_changing and i < n_max) or (i<n_min):
             # data storage:
             if self.runstore != None:
                 if self.generation % step == 0:
                     #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
                     self.runstore.dump_data(self)
                     #~ self.runstore.flush()
-                    
-            previous = np.copy(self.freqs)
+            
+            previous_freqs = np.copy(self.freqs)
+            previous_diff = freq_diff
             
             ### migration ##################################
             if MIG is not None:
@@ -652,16 +656,36 @@ class MetaPopulation(object):
             
             i += 1
             self.generation += 1
-            freq_diff = utils.diff(self.freqs, previous)
+            freq_diff = utils.diff(self.freqs, previous_freqs)
+            diff_change = freq_diff - previous_diff
+            
             # update progress bar:
             if progress:
                 progress.animate(i, freq_diff)
             #~ progress.update(self.generation)
-            still_changing = freq_diff > thresh
+            # frequencies are still changing...
+            # IF total difference between current and previous frequencies is above thresh_total
+            # OR IF total difference has become larger
+            # OR IF any of the individual frequency changes is above thresh_ind
+            still_changing = \
+                ( freq_diff>thresh_total ) or \
+                ( diff_change>0. ) or \
+                ( not np.alltrue(np.abs(self.freqs - previous_freqs)<thresh_ind) )   
         
         self.eq = not still_changing
         if progress:
-            progress.animate(n_max, freq_diff)
+            progress.animate(n_max, thresh_total)
+        if verbose:
+            if progress:
+                print '\n'
+            if self.eq:
+                print 'Equilibrium reached after %d generations:' % i
+            else:
+                print 'Max. generation count of %d reached, but no equilibrium:' % n_max
+            print '- frequency change:'
+            print '    total %.4g  |  threshold %.4g' % (freq_diff, thresh_total)
+            print '    individual threshold %.4g' % thresh_ind
+            print '- generation: start %d  |  current %d' % (self.generation-i, self.generation)
         if self.runstore != None:   # store final state
             self.runstore.dump_data(self)
             if self.eq:
