@@ -555,7 +555,6 @@ class MetaPopulation(object):
         if not isinstance(pop,int):
             pop = self.allele_idxs[pop][1]
         loc,al = self.allele_idxs[allele]
-        print pop, loc, al
         if self.n_pops == 1:
             lfreqs = sum_along_axes(self.freqs, [0,loc])
         else:
