@@ -9,10 +9,10 @@ import colorbrewer as cb
 from mpltools import color
 
 # bbox_inches='tight' issue (https://github.com/matplotlib/matplotlib/issues/688) seems
-# to be resolved in version 1.3.x:
-required = np.array( [1, 3, 0], dtype=np.int )
+# to be resolved in version 1.1.1:
+required = np.array( [1, 1, 1], dtype=np.int )
 # check matplotlib version:
-installed = np.array( mpl.__version__.split('.') ).astype(np.int)
+installed = np.array( mpl.__version__.strip('rc').split('.') ).astype(np.int)
 req_mpl_available = utils.version_check(installed, required)   # boolean
 
 legend_font = FontProperties()
