@@ -120,9 +120,14 @@ def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
     
     # prepare data:
     data = np.zeros((npops,nloci,maxalleles), float)
-    for i,loc in enumerate(sums):
-        p,l = loc.shape
-        data[:,i,:l] = loc        # pop, locus, allele
+    if npops == 1:
+        for i,loc in enumerate(sums):
+            l = len(loc)
+            data[0,i,:l] = loc
+    else:
+        for i,loc in enumerate(sums):
+            p,l = loc.shape
+            data[:,i,:l] = loc        # pop, locus, allele
     cumdata = np.cumsum(data, axis=2)   # we need this for stacking the bars
     
     # prepare figure and axes and plot:

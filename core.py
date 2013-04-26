@@ -360,10 +360,10 @@ class MetaPopulation(object):
         self.ndim = self.freqs.ndim
         self.shape = self.freqs.shape
         self.size = self.freqs.size
-        self.normalize()
         self.allele_idxs = config['ADICT']
         self.populations = self.alleles[0]
         self.n_pops = len(self.populations)
+        self.normalize()          # normalization must happen after defining n_pops (in case n_pops == 1)
         self.generation = generation
         self.name = name
         self.eq = eq
@@ -424,8 +424,12 @@ class MetaPopulation(object):
         Normalize frequencies so that they sum up to one in each 
         population.
         """
-        s = sum_along_axes(self.freqs, 0)          # first axis are `populations`
-        self.freqs /= extend(s, self.ndim, 0)      # in-place, no copy
+        if self.n_pops == 1:
+            s = np.sum(self.freqs)
+            self.freqs /= s
+        else:
+            s = sum_along_axes(self.freqs, 0)          # first axis are `populations`
+            self.freqs /= extend(s, self.ndim, 0)      # in-place, no copy
     
     def isuptodate(self):
         """
@@ -480,11 +484,13 @@ class MetaPopulation(object):
         for loc in locus:
             if isinstance(loc, int): level.append(loc)
             else: level.append( self.loci.index(loc) )
+        #~ print locus, ', level:', level
         if pop or pop==0:
             if not isinstance(pop,int):
                 popname, pop = pop, self.allele_idxs(pop)[1]
             else:
                 popname = self.populations[pop]
+            #~ print popname, pop
             return sum_along_axes(self.freqs, level)[pop]
         return sum_along_axes(self.freqs, level)
     
@@ -549,7 +555,11 @@ class MetaPopulation(object):
         if not isinstance(pop,int):
             pop = self.allele_idxs[pop][1]
         loc,al = self.allele_idxs[allele]
-        lfreqs = sum_along_axes(self.freqs, [0,loc])[pop]
+        print pop, loc, al
+        if self.n_pops == 1:
+            lfreqs = sum_along_axes(self.freqs, [0,loc])
+        else:
+            lfreqs = sum_along_axes(self.freqs, [0,loc])[pop]
         try:
             assert lfreqs[al] == 0.
         except AssertionError:
@@ -607,6 +617,7 @@ class MetaPopulation(object):
         still_changing = True
         freq_diff = 0.
         i = 0
+        
         if progress_bar is True:
             #~ progress = utils.ProgressBar(n_max)
             progress = utils.ProgressBar(thresh_total, progress_type='log')
@@ -614,10 +625,20 @@ class MetaPopulation(object):
             progress = None
         
         while (still_changing and i < n_max) or (i<n_min):
+            #~ if verbose:
+                #~ print '####### GENERATION %d #############' % self.generation
+                #~ print self
+                #~ print self.overview()
+                #~ print 'freqs %s:\n%s' % (np.shape(self.freqs), self.freqs)
+                #~ print self.all_sums()
+                #~ print '--------------------------------------------------'
             # data storage:
             if self.runstore != None:
                 if self.generation % step == 0:
                     #~ self.runstore.dump_data(self.generation, self.freqs, self.all_sums())
+                    #~ pdb.set_trace()
+                    #~ print 'trait sums:\n', self.get_sums('trait')
+                    #~ print 'pref sums:\n', self.get_sums('preference')
                     self.runstore.dump_data(self)
                     #~ self.runstore.flush()
             
@@ -626,13 +647,16 @@ class MetaPopulation(object):
             
             ### migration ##################################
             if MIG is not None:
+                #~ print '*** migration ***'
                 self.freqs = np.sum(self.freqs[np.newaxis,...] * MIG, 1)   # sum over `source` axis
                 self.normalize()
             
             ### viability selection ########################
             if VIAB_SEL is not None:
+                #~ print '*** viability selection ***'
                 self.freqs = self.freqs * VIAB_SEL
                 self.normalize()
+                #~ print 'freqs %s:\n%s' % (np.shape(self.freqs), self.freqs)
             
             ### reproduction ###############################
             #~ # species recognition:
@@ -642,17 +666,26 @@ class MetaPopulation(object):
             #~ TP.calculate( self.get_sums('trait') )
             REPRO_DYN = 1. #np.ones( (1,)*self.repro_dim )
             for DRW, target_loci in dyn_repro_weights:
+                #~ print '***', DRW.name, '***'
                 DRW.calculate( self.get_sums(target_loci) )
                 REPRO_DYN = REPRO_DYN * DRW.extended()
+            #~ print 'freqs %s:\n%s' % (np.shape(self.freqs), self.freqs)
             
             # offspring production:
+            #~ print '*** reproduction ***'
             females = extend( self.freqs, self.repro_dim, self.repro_idxs['female'] )
             males = extend( self.freqs, self.repro_dim, self.repro_idxs['male'] )
             #~ self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
-            self.freqs = sum_along_axes( females * males * \
+            if self.n_pops == 1:
+                self.freqs[0] = sum_along_axes( females * males * \
+                                         REPRO_CONST * \
+                                         REPRO_DYN, self.repro_idxs['offspring'] )
+            else:
+                self.freqs = sum_along_axes( females * males * \
                                          REPRO_CONST * \
                                          REPRO_DYN, self.repro_idxs['offspring'] )
             self.normalize()
+            #~ print 'freqs %s:\n%s' % (np.shape(self.freqs), self.freqs)
             
             i += 1
             self.generation += 1

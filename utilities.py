@@ -11,7 +11,7 @@ from numpy import sum
 import matplotlib.pyplot as plt
 import pandas as pd
 from pprint import PrettyPrinter
-import time, datetime, uuid, sys
+import time, datetime, uuid, sys, pdb
 from IPython.core.display import HTML, Javascript, display
 
 try:
@@ -237,7 +237,7 @@ def extend(arr, dim, pos):
     if isinstance(arr, float):
         return arr
     indexer = [np.newaxis] * dim
-    if isinstance(pos,int): pos = [pos]       # enable passing of a single int posistion
+    if isinstance(pos,int): pos = [pos]       # enable passing of a single `int` position
     for p in pos:
         indexer[p] = slice(None)
     return arr[indexer]
@@ -259,8 +259,13 @@ def sum_along_axes(arr, axes):
     """
     if isinstance(axes,int): axes = [axes]       # enable passing of a single int axis
     _axes = range(arr.ndim)
+    #~ print 'axes:', axes
+    #~ print '_axes:', _axes,
     for a in axes: _axes.remove(a)
-    return np.apply_over_axes(sum, arr, _axes).squeeze()
+    #~ print '-->', _axes
+    res = np.apply_over_axes(sum, arr, _axes).squeeze()
+    #~ print 'shape of result:', np.shape(res)
+    return res   #np.apply_over_axes(sum, arr, _axes).squeeze()
 
 def sum_over_axes(arr, axes):
     if isinstance(axes,int): axes = [axes]       # enable passing of a single int axis
