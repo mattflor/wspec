@@ -6,7 +6,7 @@ import utilities as utils
 from matplotlib.font_manager import FontProperties
 from matplotlib.patches import Rectangle
 import colorbrewer as cb
-from mpltools import color
+#~ from mpltools import color
 
 # bbox_inches='tight' issue (https://github.com/matplotlib/matplotlib/issues/688) seems
 # to be resolved in version 1.1.1:
@@ -27,6 +27,28 @@ color_scheme_names = ['BrBG', 'PiYG', 'PRGn', 'RdBu', 'RdGy', 'PuOr', \
 color_schemes = {}
 for name in color_scheme_names:
     color_schemes[name] = eval('cb.{0}'.format(name))
+
+# http://colorbrewer2.org
+locus_colors = {
+    'default': cb.Accent,      # qualitative
+    'trait': cb.Oranges,       # sequential
+    'preference': cb.Greens,    # sequential
+    'cytotype': cb.PuRd,       # sequential
+    'back': cb.Blues
+}
+
+def get_color_scheme(fullname, schemes, n=None, nmin=4):
+    if fullname == 'cytotype':
+        return [(111,111,111), (217,217,217), (213,166,189)]
+    names = schemes.keys()
+    for name in names:
+        if name in fullname:
+            if n is not None:
+                return schemes[name][max(nmin,n+1)]
+            return schemes[name]
+    if n is not None:
+        return schemes['default'][max(nmin,n+1)]
+    return schemes['default']
 
 def to_rgb(t):
     """
@@ -64,8 +86,9 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,8], **kwargs):
             plt.setp(ax.get_xticklabels(), visible=False)
             plt.setp(ax.get_yticklabels(), visible=False)
             n = len(alleles[j])     # number of alleles at the locus
-            name = color_scheme_names[j]
-            loc_scheme = color_schemes[name][max(4,n)]     # color schemes should have at least 4 colors
+            #~ name = color_scheme_names[j]
+            #~ loc_scheme = color_schemes[name][max(4,n)]     # color schemes should have at least 4 colors
+            loc_scheme = get_color_scheme(loc, locus_colors, n)
             if i == 0:      # y ticklabels only for pop1:
                 plt.setp(ax.get_yticklabels(), visible=True)
                 plt.setp(ax.get_yticklabels(), fontsize=8)
@@ -73,7 +96,7 @@ def plot_sums(gens, sums, c, loci, alleles, figsize=[19,8], **kwargs):
                 plt.setp(ax.get_xticklabels(), visible=True)
                 plt.setp(ax.get_xticklabels(), fontsize=8)
             for k,allele in enumerate(alleles[j]):   # iterate through alleles at the locus/lines
-                allele_color = to_rgb(loc_scheme[k])
+                allele_color = to_rgb(loc_scheme[k+1])
                 ax.plot(gens[:c], sums[loc][:c,i,k], color=allele_color, label=allele, **kwargs)
                 ax.set_xlim(0,xmax)
                 ax.set_ylim(-0.03,1.03)           # all data to plot are frequencies, i.e. between 0 and 1
@@ -138,7 +161,7 @@ def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
         else:
             bottom_text = 0.05
         fig.text(0.94, bottom_text, 'Generation: {0}'.format(generation), fontsize=12, ha='right', va='bottom', rotation='horizontal')
-    fig.subplots_adjust(wspace=0.1, hspace=0.1, left=0.05, right=0.94, top=0.91, bottom=0.12)
+    fig.subplots_adjust(wspace=0.15, hspace=0.1, left=0.05, right=0.94, top=0.91, bottom=0.12)
     #~ fig.subplots_adjust(bottom=0.3)
     for i,pop in enumerate(pops):
         ax = fig.add_subplot(1,npops,i+1)
@@ -150,10 +173,11 @@ def stacked_bars(sums, loci, alleles, generation=None, figsize=[15,8]):
         ax.set_xticklabels(loci)
         for j,loc in enumerate(loci):
             n = len(alleles[j])     # number of alleles at the locus
-            name = color_scheme_names[j]
-            loc_scheme = color_schemes[name][max(4,n)]
+            #~ name = color_scheme_names[j]
+            #~ loc_scheme = color_schemes[name][max(4,n)]
+            loc_scheme = get_color_scheme(loc, locus_colors, n)
             for k,allele in enumerate(alleles[j]):
-                allele_color = to_rgb(loc_scheme[k])
+                allele_color = to_rgb(loc_scheme[k+1])
                 if k==0:
                     ax.bar(xpos[j], data[i,j,k], width, color=allele_color, label=allele)
                 else:

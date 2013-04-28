@@ -30,11 +30,11 @@ def version_check(installed, required):
     else:
         return version_check(installed[1:], required[1:])
 
-def ProgressBar(endval, progress_type='linear'):
+def ProgressBar(endval, indval=None, progress_type='linear'):
     if progress_type in ['linear', 'lin']:
         return LinearProgressBar(endval)
     elif progress_type in ['logarithmic', 'log']:
-        return LogProgressBar(endval)
+        return LogProgressBar(endval, indval)
 
 class LinearProgressBar:
     """
@@ -94,9 +94,10 @@ class LogProgressBar:
 
     Taken from the pymc package, slightly modified.
     """
-    def __init__(self, threshold):
-        self.threshold = threshold
-        self.log_thresh = (-1)*np.log10(threshold)
+    def __init__(self, threshold_total, threshold_individual=None):
+        self.threshold_total = threshold_total
+        self.log_thresh = (-1)*np.log10(threshold_total)
+        self.threshold_individual = threshold_individual
         self.prog_bar = '[]'
         self.fill_char = '*'
         self.width = 40
@@ -106,7 +107,7 @@ class LogProgressBar:
         else:
             self.animate = self.animate_noipython
 
-    def animate_noipython(self, g, diff):
+    def animate_noipython(self, g, diff, ind_diff_max=None):
         if sys.platform.lower().startswith('win'):
             print self, '\r',
         else:
@@ -114,19 +115,22 @@ class LogProgressBar:
         self.update_iteration(g, diff)
         # time.sleep(0.5)
             
-    def animate_ipython(self, g, diff):
+    def animate_ipython(self, g, diff, ind_diff_max=None):
         clear_output()
         print '\r', self,
         sys.stdout.flush()
-        self.update_iteration(g, diff)
+        self.update_iteration(g, diff, ind_diff_max)
     
-    def update_iteration(self, g, diff):
+    def update_iteration(self, g, diff, ind_diff_max=None):
         if diff == 0.:    # prevent log(0) problem
             self.__update_amount(100.)
         else:
             log_diff = (-1)*np.log10(diff)
             self.__update_amount( min(100., (log_diff / float(self.log_thresh)) * 100.0) )
-        self.prog_bar += '  %.4g [%-.4g]  |  %d' % (diff, self.threshold, g)
+        if ind_diff_max is not None:
+            self.prog_bar += '  %.2g [%-.2g]  |  %.2g [%-.2g]  |  %d' % (diff, self.threshold_total, ind_diff_max, self.threshold_individual, g)
+        else:
+            self.prog_bar += '  %.2g [%-.2g]  |  %d' % (diff, self.threshold_total, g)
 
     def __update_amount(self, new_amount):
         percent_done = int(round((new_amount / 100.0) * 100.0))
@@ -197,10 +201,10 @@ def timing_report(starttime, generation):
     s = 'Simulation run completed:\n'
     seconds = time.time()-starttime
     hhmmss = str(datetime.timedelta(seconds=int(seconds)))
-    s += 'Generation: {0}\nElapsed Time: {1}\n'.format(generation, hhmmss)
+    s += '    Generation: {0}\n    Elapsed Time (hours:minutes:seconds): {1}\n'.format(generation, hhmmss)
     pergen = seconds / generation
-    hhmmss = str(datetime.timedelta(seconds=int(pergen)))
-    s += 'Time per generation: {0})'.format(hhmmss)
+    #~ hhmmss = str(datetime.timedelta(seconds=int(pergen)))
+    s += '    Time per generation (seconds): %.2g' % pergen
     return s
 
 
@@ -388,7 +392,7 @@ def nuclear_inheritance_at_two_loci(n1,n2,r):
                                     ary[i,j,k,l,m,n] = 0.5 * r
     return ary
     
-def total_diff(a, b):
+def arrdiff(a, b):
     """
     Sum over absolute differences between two arrays `a` and `b`.
     
@@ -398,7 +402,8 @@ def total_diff(a, b):
     Returns:
         out: float
     """
-    return np.sum(np.abs(a-b))
+    d = np.abs(a-b)
+    return d, np.sum(d)
 
 def make_reproduction_allele_names(axes, config):
     """

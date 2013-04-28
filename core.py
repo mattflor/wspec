@@ -76,6 +76,8 @@ class Weight(object):
             s = '{0}\nName: {1}\n'.format( self.panda.unstack(self.unstack_levels), self.name )
         else:
             s = str(self.panda) + '\n'
+        if self.parameters == {}:
+            return s.rstrip()
         pars = ''
         for k,v in sorted(self.parameters.items()):
           pars += '{0}: {1}\n'.format(k,v)
@@ -322,32 +324,11 @@ class GeneralizedPreferenceWeight(ReproductionWeight):
     
     def __str__(self):
         s = Weight.__str__(self) + '\n\n'
+        # add rejection probabilities to output:
         ndim = self.rprobs.ndim
-        s += '{0}:\n{1}\n'.format( self.rpanda.name, self.rpanda.unstack([1]*(ndim-1)) )
-        #~ s += 'rejection probabilities:\n'
-        #~ for pref,vals in sorted(self.pref_desc.items()):
-            #~ s += '    {0}    '.format(pref)
-            #~ for cue,pr in vals:
-                #~ s += '{0}:    {1}\n'.format(p, str(v).translate(None, "'{}"))
+        s += '{0}:\n{1}'.format( self.rpanda.name, self.rpanda.unstack([1]*(ndim-1)) )
         return s
     
-    
-class DummyProgressBar(object):
-    def update(self, val):
-        pass
-    def finish(self):
-        pass
-    
-#~ def generate_progressbar(progress_type='real'):
-    #~ if progress_type == 'real':
-        #~ pbar = ProgressBar(self._iter)
-        #~ widgets=['Generation: ', pbar.Counter(), ' (', pbar.Timer(), ')']
-        #~ return pbar.ProgressBar(widgets=widgets, maxval=1e6).start()   # don't provide maxval!
-    #~ elif progress_type == 'dummy':
-        #~ return DummyProgressBar()
-    #~ else:
-        #~ raise TypeError, "progress_type `{0}` unknown; use `real` or `dummy` instead".format(progress_type)
-
 class MetaPopulation(object):
     def __init__(self, frequencies, config, generation=0, name='metapopulation', eq='undetermined'):
         self.loci = config['LOCI']
@@ -411,13 +392,7 @@ class MetaPopulation(object):
             else:
                 s += str(self.get_sums_pd(a).unstack(1)) + '\n'
                 s += 'Name: {0}\n\n'.format(a)
-        return s
-        #~ s = str(self.get_sums_pd([1,2]).unstack(2)) + '\n'
-        #~ s += 'Name: background loci\n\n'
-        #~ for loc in self.loci[3:]:
-            #~ s += str(self.get_sums_pd(loc).unstack(1)) + '\n'
-            #~ s += 'Name: {0}\n\n'.format(loc)
-        #~ return s
+        return s.rstrip()
     
     def normalize(self):
         """
@@ -611,15 +586,15 @@ class MetaPopulation(object):
         n = n_max + self.generation
         #~ thresh = threshold
         if thresh_ind is None:
-            thresh_ind = thresh_total/self.size   # on average, each of the frequencies should change less than `thresh` if an equilibrium has been reached
+            thresh_ind = 2 * thresh_total/(self.size/self.n_pops)     # max. individual change must be below this threshold
         
         still_changing = True
-        freq_diff = 0.
+        total_diff = 0.
         i = 0
         
         if progress_bar is True:
             #~ progress = utils.ProgressBar(n_max)
-            progress = utils.ProgressBar(thresh_total, progress_type='log')
+            progress = utils.ProgressBar(thresh_total, thresh_ind, progress_type='log')
         else:
             progress = None
         
@@ -642,7 +617,7 @@ class MetaPopulation(object):
                     #~ self.runstore.flush()
             
             previous_freqs = np.copy(self.freqs)
-            previous_diff = freq_diff
+            previous_diff = total_diff
             
             ### migration ##################################
             if MIG is not None:
@@ -688,25 +663,28 @@ class MetaPopulation(object):
             
             i += 1
             self.generation += 1
-            freq_diff = utils.total_diff(self.freqs, previous_freqs)
-            diff_change = freq_diff - previous_diff
+            diffs = np.abs(self.freqs - previous_freqs)
+            total_diff = np.sum(diffs)
+            diff_change = total_diff - previous_diff
+            max_diff = np.amax(diffs)
             
             # update progress bar:
             if progress:
-                progress.animate(i, freq_diff)
+                progress.animate(i, total_diff, max_diff)
             #~ progress.update(self.generation)
             # frequencies are still changing...
             # IF total difference between current and previous frequencies is above thresh_total
             # OR IF total difference has become larger
             # OR IF any of the individual frequency changes is above thresh_ind
             still_changing = \
-                ( freq_diff>thresh_total ) or \
-                ( diff_change>0. ) or \
-                ( not np.alltrue(np.abs(self.freqs - previous_freqs)<thresh_ind) )   
+                ( total_diff > thresh_total ) or \
+                ( diff_change > 0. ) or \
+                ( max_diff > thresh_ind )
+                #~ ( not np.alltrue(diffs<thresh_ind) )   
         
         self.eq = not still_changing
         if progress:
-            progress.animate(n_max, thresh_total)
+            progress.animate(n_max, thresh_total, max_diff)
         if verbose:
             if progress:
                 print '\n'
@@ -715,7 +693,7 @@ class MetaPopulation(object):
             else:
                 print 'Max. generation count of %d reached, but no equilibrium:' % n_max
             print '- frequency change:'
-            print '    total %.4g  |  threshold %.4g' % (freq_diff, thresh_total)
+            print '    total %.4g  |  threshold %.4g' % (total_diff, thresh_total)
             print '    individual threshold %.4g' % thresh_ind
             print '- generation: start %d  |  current %d' % (self.generation-i, self.generation)
         if self.runstore != None:   # store final state
