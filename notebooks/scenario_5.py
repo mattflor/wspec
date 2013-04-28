@@ -3,7 +3,7 @@
 
 # <headingcell level=1>
 
-#     Scenario 3
+#     Scenario 4
 
 # <codecell>
 
@@ -73,16 +73,16 @@ PARAMETERS = {
     't': (0.9, 'transmission rate'),             # transmission of Wolbachia
     'f': (0.1, 'fecundity reduction'),            # Wolbachia-infected females are less fecund
     'm': (0.01, 'migration rate'),                # symmetric migration
-    's': (0.5, 'selection coefficient'),           # selection advantage for adaptive trait
-    'pt': (1., 'transition probability'),       # probability of transition into another mating round
+    's': (0.1, 'selection coefficient'),           # selection advantage for adaptive trait
+    'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'),   # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold')         # equilibrium threshold (total frequency change)
 }
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
     'P0': {'baseline': 0.},
-    'P1': {'baseline': 0.4, 'T1': 0.},
-    'P2': {'baseline': 0.4, 'T2': 0.}
+    'P1': {'baseline': 1., 'T1': 0.},
+    'P2': {'baseline': 1., 'T2': 0.}
 }
 PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
 # make parameter names locally available:
@@ -97,9 +97,9 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-snum = 3     # scenario number
+snum = 4     # scenario number
 rnum = 1     # number of simulation run
-n = 50000    # max number of generations to iterate for each stage of the simulation
+n = 20000    # max number of generations to iterate for each stage of the simulation
 step = 10    # store metapopulation state every `step` generations
 max_figwidth = 15
 figheight = 5
@@ -307,7 +307,7 @@ weights['constant_reproduction'] = R_
 
 # <headingcell level=2>
 
-# 4. Fisherian runaway: Sexy trait fixation
+# 4. Reinforcement
 
 # <markdowncell>
 
@@ -336,8 +336,8 @@ print 'p_r    =', pr_p1_baseline
 starttime = time.time()                  # take time for timing report after simulation run
 
 startfreqs = np.zeros(FSHAPE)
-startfreqs[0,0,0,0] = 1.                   # pop1-T1-P0-U
-startfreqs[1,1,0,1] = 1.                   # pop2-T2-P0-W
+startfreqs[0,0,0,0] = 1.                   # pop1-T1-P1-U
+startfreqs[1,1,0,1] = 1.                   # pop2-T2-P2-W
 # initialize metapopulation with start frequencies:
 metapop = core.MetaPopulation(
     startfreqs,
@@ -385,7 +385,7 @@ fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <headingcell level=3>
 
-# 4.3 Introduction of preference allele P1
+# 4.3 Introduction of preference allele P0
 
 # <codecell>
 

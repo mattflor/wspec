@@ -3,7 +3,7 @@
 
 # <headingcell level=1>
 
-# Scenario 1
+# Scenario 2
 
 # <codecell>
 
@@ -14,38 +14,39 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from IPython.core.display import Image
 # wspec moduls:
-import core, storage
+import core, storage, analytical
 import visualization as viz
 import utilities as utils
-for mod in [core,storage,utils,viz]:     # reload the wspec modules in case the code has changed
+for mod in [core,storage,analytical,utils,viz]:     # reload the wspec modules in case the code has changed
     reload(mod)
     
 np.set_printoptions(precision=4, suppress=True, linewidth=100)
 
 # <markdowncell>
 
-# This scenario has the following features:
+# ## 1. Scenario features
 # 
-# * two populations linked by migration
-# * initial state:
-#     * trait T1 adaptive and fixed in population 1, T2 in population 2
-#     * preference allele P0 (non-discriminating) fixed in both populations
-#     * *Wolbachia* infection in population 2 (population 1 is uninfected)
-# * order of events:
-#     1. secondary contact  -->  selection-migration equilibrium
-#     2. introduction of a preference for T1 in population 1: P1 (T1)  -->  new equilibrium
-#     3. introduction of a preference for T2 in population 2: P2 (T2)  -->  new equilibrium
+# * Two populations linked by migration
 # 
-# <!-- <img src="files/images/setup_01.png">  -->
-# <img src="https://docs.google.com/drawings/d/soLzuzqLT2AcRMbaZRpfUxg/image?w=153&h=248&rev=298&ac=1">
+# * Initial state:
+#     * Trait T1 adaptive and fixed in population 1, T2 in population 2
+#     * Preference allele P0 (non-discriminating) fixed in both populations
+#     * Population 1 is uninfected, *Wolbachia* infection in population 2
+# 
+# * Order of events:
+#     1. Secondary contact  $\rightarrow$  selection-migration equilibrium
+#     2. Introduction of a preference for T1 in population 1: P1 (T1)  $\rightarrow$  new equilibrium
+#     3. Introduction of a preference for T2 in population 2: P2 (T2)  $\rightarrow$  new equilibrium
+# 
+# <img src="files/images/scenario2.png" width=600>
 
 # <markdowncell>
 
-# ## Configuration
+# ## 2. Configuration
 # 
 # To configure the simulation scenario, we need to specify gene loci, alleles, and parameters.
 # 
-# ### Loci and alleles
+# ### 2.1 Loci and alleles
 # 
 # Populations are treated as loci, as would be the cytotype. In numpy terms, each locus is represented by an array axis.
 # 
@@ -63,7 +64,7 @@ print utils.loci2string(LOCI, ALLELES)
 
 # <headingcell level=3>
 
-# Parameters
+# 2.2 Parameters
 
 # <codecell>
 
@@ -80,21 +81,15 @@ PARAMETERS = {
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
     'P0': {'baseline': 0.},
-    'P1': {'baseline': 0.9, 'T1': 0.},
-    'P2': {'baseline': 0.5, 'T2': 0.}
+    'P1': {'baseline': 1., 'T1': 0.},
+    'P2': {'baseline': 1., 'T2': 0.}
 }
 PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
-print utils.params2string(PARAMETERS)
-
-# <markdowncell>
-
-# Update local variables so we can directly use loci, alleles, and parameters:
-
-# <codecell>
-
+# make parameter names locally available:
 config = utils.configure_locals(LOCI, ALLELES, PARAMETERS)
 locals().update(config)
-# pprint.pprint( sorted(config.items()) )
+# print all parameters:
+print utils.params2string(PARAMETERS)
 
 # <markdowncell>
 
@@ -110,6 +105,7 @@ max_figwidth = 15
 figheight = 5
 w = min( N_POPS*(N_LOCI-1), max_figwidth )    # figure width: npops*(nloci-1) but at most 15
 figsize = [w, figheight]
+show_progressbar = False          # BEWARE: enabling progressbar slows down the simulation significantly!
 
 # <markdowncell>
 
@@ -126,7 +122,7 @@ rstore.init_run(rnum, PARAMETERS, FSHAPE, init_len=100)
 
 # <headingcell level=2>
 
-# Weights
+# 3. Weights
 
 # <markdowncell>
 
@@ -150,7 +146,7 @@ weights = {
 
 # <headingcell level=3>
 
-# Migration
+# 3.1 Migration
 
 # <codecell>
 
@@ -169,7 +165,7 @@ print M
 
 # <headingcell level=3>
 
-# Viability selection
+# 3.2 Viability selection
 
 # <codecell>
 
@@ -189,7 +185,7 @@ print VS
 
 # <headingcell level=3>
 
-# Sexual selection (female mating preference)
+# 3.3 Sexual selection (female mating preference)
 
 # <markdowncell>
 
@@ -214,7 +210,7 @@ print TP
 
 # <headingcell level=3>
 
-# Reproduction
+# 3.4 Reproduction
 
 # <headingcell level=4>
 
@@ -270,9 +266,9 @@ print F
 
 # Nuclear inheritance
 
-# <headingcell level=5>
+# <markdowncell>
 
-# Preference locus
+# Nuclear inheritance weights for all loci.
 
 # <codecell>
 
@@ -286,10 +282,6 @@ n_alleles = len(ALLELES[LOCI.index('preference')])
 IP.set( utils.nuclear_inheritance(n_alleles) )
 IP_ = IP.extended()
 print IP
-
-# <headingcell level=5>
-
-# Trait locus
 
 # <codecell>
 
@@ -315,11 +307,29 @@ weights['constant_reproduction'] = R_
 
 # <headingcell level=2>
 
-# Simulation
+# 4. Fisherian runaway: Sexy trait fixation
+
+# <markdowncell>
+
+# With the *Wolbachia* infection pattern being stable and female mating preferences not accrueing any costs, Fisherian runaway sexual selection occurs.
+# The outcome is determined by a balance between viability selection ($s$) and sexual selection ($p_r$).
+# If sexual selection is stonger then the runaway results in the fixation of the preferred trait in both populations while the mutant preference allele reaches the same frequency in both populations.
+
+# <codecell>
+
+m1 = analytical.mcrit_UM(f, lCI, t)     # uninfected mainland --> infected island
+m2 = analytical.mcrit_IM(f, lCI, t)     # infected mainland --> uninfected island
+mcrit = min(m1,m2)
+print 'm_crit = %.5f' % mcrit
+print 'm      =', m
+assert m < mcrit
+print 'p_t    =', pt
+print 's      =', s
+print 'p_r    =', pr_p1_baseline
 
 # <headingcell level=3>
 
-# Initial state
+# 4.1  Initial state
 
 # <codecell>
 
@@ -343,15 +353,12 @@ rstore.dump_data(metapop)
 
 print metapop
 print metapop.overview()
+print
 fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
-
-# <headingcell level=3>
-
-# Migration-selection equilibrium
 
 # <markdowncell>
 
-# Run the simulation until an equilibrium is reached (but for `n` generations at most):
+# Iterate until an equilibrium is reached:
 
 # <codecell>
 
@@ -361,57 +368,31 @@ metapop.run(
     thresh_total=eq, 
     step=step, 
     runstore=rstore, 
-    progress_bar=False, 
+    progress_bar=show_progressbar, 
     verbose=True
 )
+
+# <headingcell level=3>
+
+# 4.2 Migration-selection equilibrium
 
 # <codecell>
 
 print metapop
 print metapop.overview()
+print
 fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <headingcell level=3>
 
-# Introduction of preference allele P1
+# 4.3 Introduction of preference allele P1
 
 # <codecell>
 
 intro_allele = 'P1'
-metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=True)
+metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=False)
 rstore.dump_data(metapop)
 rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
-
-print metapop
-print metapop.overview()
-
-# <headingcell level=3>
-
-# Equilibrium
-
-# <codecell>
-
-metapop.run(
-    n,
-    weights,
-    thresh_total=eq,
-    step=step,
-    runstore=rstore,
-    progress_bar=True,
-    verbose=True
-)
-
-# <codecell>
-
-print metapop
-print metapop.overview()
-fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
-
-# <headingcell level=3>
-
-# Introduction of preference allele P2
-
-# <codecell>
 
 intro_allele = 'P2'
 metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=True)
@@ -421,9 +402,9 @@ rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele)
 print metapop
 print metapop.overview()
 
-# <headingcell level=3>
+# <markdowncell>
 
-# Final state
+# Iterate again until an equilibrium is reached:
 
 # <codecell>
 
@@ -433,19 +414,65 @@ metapop.run(
     thresh_total=eq,
     step=step,
     runstore=rstore,
-    progress_bar=True,
+    progress_bar=show_progressbar,
     verbose=True
 )
+
+# <headingcell level=3>
+
+# 4.4 Equilibrium
 
 # <codecell>
 
 print metapop
 print metapop.overview()
+print
 fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <headingcell level=3>
 
-# Dynamic weights (final states)
+# Introduction of preference allele P2
+
+# <codecell>
+
+# intro_allele = 'P2'
+# metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=True)
+# rstore.dump_data(metapop)
+# rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+
+# print metapop
+# print metapop.overview()
+
+# <markdowncell>
+
+# Iterate until an equilibrium is reached:
+
+# <codecell>
+
+metapop.run(
+    n,
+    weights,
+    thresh_total=eq,
+    step=step,
+    runstore=rstore,
+    progress_bar=show_progressbar,
+    verbose=True
+)
+
+# <headingcell level=3>
+
+# Final state
+
+# <codecell>
+
+print metapop
+print metapop.overview()
+print
+fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
+
+# <headingcell level=4>
+
+# Dynamic weights (in the final state)
 
 # <codecell>
 
