@@ -72,9 +72,9 @@ PARAMETERS = {
     'sp': (1., 'suppressor penetrance'),          # penetrance of the suppressor (CI mod and resc)
     't': (0.9, 'transmission rate'),             # transmission of Wolbachia
     'f': (0.1, 'fecundity reduction'),            # Wolbachia-infected females are less fecund
-    'm': (0.01, 'migration rate'),                # symmetric migration
+    'm': (0.02, 'migration rate'),                # symmetric migration
     's': (0.1, 'selection coefficient'),           # selection advantage for adaptive trait
-    'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
+    'pt': (1., 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'),   # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold')         # equilibrium threshold (total frequency change)
 }
@@ -97,7 +97,7 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-snum = 4     # scenario number
+snum = 42     # scenario number
 rnum = 1     # number of simulation run
 n = 20000    # max number of generations to iterate for each stage of the simulation
 step = 10    # store metapopulation state every `step` generations
@@ -219,13 +219,19 @@ print TP
 # <codecell>
 
 CI = core.ReproductionWeight(
-    name='cytoplasmic incompatibility',
-    axes=['male_cytotype', 'offspring_cytotype'],
+    name='cytoplasmic incompatibility (suppressed)',
+    axes=['male_suppressor', 'male_cytotype', 'offspring_cytotype'],
     config=config,
-    unstack_levels=[1],
-    lCI=lCI
+    unstack_levels=[-1],
+    lCI=lCI,
+    e=sp
 )
-CI.set( np.array([[1, 1], [1-lCI, 1]], float ) )
+ci, e = lCI, sp
+ary = np.array( [[[1,          1],
+                  [1-ci,       1]],
+                 [[1,          1],
+                  [1-(1-e)*ci, 1]]], float )       # mA1-mW oU    modified CI case
+CI.set( ary )
 CI_ = CI.extended()
 print CI
 
@@ -237,12 +243,18 @@ print CI
 
 T = core.ReproductionWeight(
     name='cytotype inheritance',
-    axes=['female_cytotype', 'offspring_cytotype'],
+    axes=['female_suppressor', 'female_cytotype', 'offspring_cytotype'],
     config=config,
     unstack_levels=[1],
-    t=t
+    t=t,
+    d=sp
 )
-T.set( np.array( [[1, 0], [1-t, t]], float ) )
+d = sp
+T.set( np.array(
+    [[[        1,         0], 
+      [      1-t,         t]],
+     [[        1,         0], 
+      [1-(1-d)*t,   (1-d)*t]]], float ) )
 T_ = T.extended()
 print T
 
@@ -296,24 +308,31 @@ IT.set( utils.nuclear_inheritance(n_alleles) )
 IT_ = IT.extended()
 print IT
 
+# <codecell>
+
+ST = core.ReproductionWeight(
+    name='suppressor inheritance',
+    axes=['female_suppressor', 'male_suppressor', 'offspring_suppressor'],
+    config=config,
+    unstack_levels=[2]
+)
+n_alleles = len(ALLELES[LOCI.index('suppressor')])
+ST.set( utils.nuclear_inheritance(n_alleles) )
+ST_ = ST.extended()
+print IT
+
 # <markdowncell>
 
 # We can combine all reproduction weights that are not frequency-dependent:
 
 # <codecell>
 
-R_ = CI_ * T_ * F_ * IP_ * IT_
+R_ = CI_ * T_ * F_ * IP_ * IT_ * ST_
 weights['constant_reproduction'] = R_
 
 # <headingcell level=2>
 
-# 4. Reinforcement
-
-# <markdowncell>
-
-# With the *Wolbachia* infection pattern being stable and female mating preferences not accrueing any costs, Fisherian runaway sexual selection occurs.
-# The outcome is determined by a balance between viability selection ($s$) and sexual selection ($p_r$).
-# If viability selection is stonger then the runaway results in the fixation of the new preference allele in both populations while the preferred trait increases in frequency in the population where it is non-adaptive.
+# 4. Simulation
 
 # <codecell>
 
@@ -322,7 +341,7 @@ m2 = analytical.mcrit_IM(f, lCI, t)     # infected mainland --> uninfected islan
 mcrit = min(m1,m2)
 print 'm_crit = %.5f' % mcrit
 print 'm      =', m
-assert m < mcrit
+#assert m < mcrit
 print 'p_t    =', pt
 print 's      =', s
 print 'p_r    =', pr_p1_baseline
@@ -336,8 +355,8 @@ print 'p_r    =', pr_p1_baseline
 starttime = time.time()                  # take time for timing report after simulation run
 
 startfreqs = np.zeros(FSHAPE)
-startfreqs[0,0,0,0] = 1.                   # pop1-T1-P1-U
-startfreqs[1,1,0,1] = 1.                   # pop2-T2-P2-W
+startfreqs[0,1,0,0,0] = 1.                   # pop1-S1-T1-P1-U
+startfreqs[1,0,1,0,1] = 1.                   # pop2-S0-T2-P2-W
 # initialize metapopulation with start frequencies:
 metapop = core.MetaPopulation(
     startfreqs,
