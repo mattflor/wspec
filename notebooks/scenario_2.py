@@ -3,7 +3,9 @@
 
 # <headingcell level=1>
 
-# Scenario 2
+# Scenario 2:  
+# 
+# Fisherian runaway - Sexy trait fixation
 
 # <codecell>
 
@@ -29,16 +31,22 @@ np.set_printoptions(precision=4, suppress=True, linewidth=100)
 # * Two populations linked by migration
 # 
 # * Initial state:
+# 
 #     * Trait T1 adaptive and fixed in population 1, T2 in population 2
+# 
 #     * Preference allele P0 (non-discriminating) fixed in both populations
-#     * Population 1 is uninfected, *Wolbachia* infection in population 2
+# 
+# * Population 1 is uninfected, *Wolbachia* infection in population 2
 # 
 # * Order of events:
-#     1. Secondary contact  $\rightarrow$  selection-migration equilibrium
-#     2. Introduction of a preference for T1 in population 1: P1 (T1)  $\rightarrow$  new equilibrium
-#     3. Introduction of a preference for T2 in population 2: P2 (T2)  $\rightarrow$  new equilibrium
 # 
-# <img src="files/images/scenario2.png" width=600>
+#     1.  Secondary contact  
+#         $\rightarrow$  selection-migration equilibrium
+# 
+#     2.  Introduction of a preference for T1 in population 1, P1 (T1), and of a preference for T2 in population 2, P2 (T2)  
+#         $\rightarrow$  new equilibrium
+# 
+# <img src="https://docs.google.com/drawings/d/1cVpm0KnTaBAAAc-N_EJkooz00czb6_FnHaDZHaOLNWc/pub?w=691&amp;h=577">
 
 # <markdowncell>
 
@@ -314,6 +322,11 @@ weights['constant_reproduction'] = R_
 # With the *Wolbachia* infection pattern being stable and female mating preferences not accrueing any costs, Fisherian runaway sexual selection occurs.
 # The outcome is determined by a balance between viability selection ($s$) and sexual selection ($p_r$).
 # If sexual selection is stonger then the runaway results in the fixation of the preferred trait in both populations while the mutant preference allele reaches the same frequency in both populations.
+# 
+# The runaway is favored by *Wolbachia*'s influence on gene flow between the populations.
+# Unidirectional CI results in an asymmetric reduction of effective migration.
+# 
+# <img src="https://docs.google.com/drawings/d/1aTwN83uNDqmScKlsbCzZsZt_VRtBaVfouM6FufWABig/pub?w=381&amp;h=255">
 
 # <codecell>
 
@@ -385,7 +398,7 @@ fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <headingcell level=3>
 
-# 4.3 Introduction of preference allele P1
+# 4.3 Introduction of preference alleles
 
 # <codecell>
 
@@ -420,48 +433,7 @@ metapop.run(
 
 # <headingcell level=3>
 
-# 4.4 Equilibrium
-
-# <codecell>
-
-print metapop
-print metapop.overview()
-print
-fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
-
-# <headingcell level=3>
-
-# Introduction of preference allele P2
-
-# <codecell>
-
-# intro_allele = 'P2'
-# metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=True)
-# rstore.dump_data(metapop)
-# rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
-
-# print metapop
-# print metapop.overview()
-
-# <markdowncell>
-
-# Iterate until an equilibrium is reached:
-
-# <codecell>
-
-metapop.run(
-    n,
-    weights,
-    thresh_total=eq,
-    step=step,
-    runstore=rstore,
-    progress_bar=show_progressbar,
-    verbose=True
-)
-
-# <headingcell level=3>
-
-# Final state
+# 4.4 Final state
 
 # <codecell>
 
@@ -480,7 +452,7 @@ print TP
 
 # <headingcell level=3>
 
-# Runtime
+# 4.5 Runtime
 
 # <codecell>
 
@@ -489,7 +461,7 @@ print utils.timing_report(starttime, metapop.generation)
 
 # <headingcell level=2>
 
-# Population dynamics
+# 5. Population dynamics
 
 # <codecell>
 
