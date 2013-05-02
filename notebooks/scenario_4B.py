@@ -3,9 +3,7 @@
 
 # <headingcell level=1>
 
-# Scenario 2:  
-# 
-# Fisherian runaway - Sexy trait fixation
+#     Scenario 4
 
 # <codecell>
 
@@ -31,22 +29,15 @@ np.set_printoptions(precision=4, suppress=True, linewidth=100)
 # * Two populations linked by migration
 # 
 # * Initial state:
-# 
-#     * Trait T1 adaptive and fixed in population 1, T2 in population 2
-# 
-#     * Preference allele P0 (non-discriminating) fixed in both populations
-# 
-# * Population 1 is uninfected, *Wolbachia* infection in population 2
+#     * Trait divergence: T1 adaptive and fixed in population 1, T2 in population 2
+#     * Divergence at the preference locus: P1 (T1) fixed in population 1, P2 (T2) in population 2
+#     * *Wolbachia* infection in population 2, Population 1 is uninfected
 # 
 # * Order of events:
+#     1. Secondary contact  $\rightarrow$  selection-migration equilibrium
+#     2. Introduction of a non-discriminating preference mutant as well as stronger mating preferences in both populations: P3 (T1), P4 (T2), and P0 (--)  $\rightarrow$  new equilibrium
 # 
-#     1.  Secondary contact  
-#         $\rightarrow$  selection-migration equilibrium
-# 
-#     2.  Introduction of a preference for T1 in population 1, P1 (T1), and of a preference for T2 in population 2, P2 (T2)  
-#         $\rightarrow$  new equilibrium
-# 
-# <img src="https://docs.google.com/drawings/d/1cVpm0KnTaBAAAc-N_EJkooz00czb6_FnHaDZHaOLNWc/pub?w=691&amp;h=577">
+# <img src="https://docs.google.com/drawings/d/1Zl6QN4SsaQoXSgKumxyx-f52-2ccVntiu7jxbkxO1oM/pub?w=691&amp;h=577">
 
 # <markdowncell>
 
@@ -65,7 +56,7 @@ np.set_printoptions(precision=4, suppress=True, linewidth=100)
 LOCI = ['population', 'trait', 'preference', 'cytotype']
 ALLELES = [['pop1', 'pop2'],
            ['T1', 'T2'],
-           ['P0', 'P1', 'P2'],
+           ['P1', 'P2', 'P3', 'P4', 'P5'],
            ['U', 'W']
           ]
 print utils.loci2string(LOCI, ALLELES)
@@ -73,6 +64,15 @@ print utils.loci2string(LOCI, ALLELES)
 # <headingcell level=3>
 
 # 2.2 Parameters
+
+# <markdowncell>
+
+# Scenario and simulation run id's, and parameters:
+
+# <codecell>
+
+sid = 4     # scenario id
+rid = 'B'     # id of simulation run
 
 # <codecell>
 
@@ -82,15 +82,19 @@ PARAMETERS = {
     'f': (0.1, 'fecundity reduction'),            # Wolbachia-infected females are less fecund
     'm': (0.01, 'migration rate'),                # symmetric migration
     's': (0.1, 'selection coefficient'),           # selection advantage for adaptive trait
-    'pt': (1., 'transition probability'),       # probability of transition into another mating round
+    'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'),   # introduction frequency of preference mutant allele
-    'eq': (1e-6, 'equilibrium threshold')         # equilibrium threshold (total frequency change)
+    'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
+    'nmax': (30000, 'max generation'),          # max number of generations to iterate for each stage of the simulation
+    'step': (10, 'storage stepsize')            # store metapopulation state every `step` generations
 }
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
-    'P0': {'baseline': 0.},
-    'P1': {'baseline': 1., 'T1': 0.},
-    'P2': {'baseline': 1., 'T2': 0.}
+    'P1': {'baseline': 0.2, 'T1': 0.},
+    'P2': {'baseline': 0.5, 'T2': 0.},
+    'P3': {'baseline': 1., 'T1': 0.},
+    'P4': {'baseline': 1., 'T2': 0.},
+    'P5': {'baseline': 0.}
 }
 PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
 # make parameter names locally available:
@@ -101,32 +105,47 @@ print utils.params2string(PARAMETERS)
 
 # <markdowncell>
 
-# Some more variables for the actual simulation run:
+# Simulation run data is stored in an HDF5 file (`storage.RunStore` basically is a wrapper around an `h5py.File` object):
 
 # <codecell>
 
-snum = 2     # scenario number
-rnum = 1     # number of simulation run
-n = 30000    # max number of generations to iterate for each stage of the simulation
-step = 10    # store metapopulation state every `step` generations
+overwrite_run = True
+data_available = False
+rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
+# select existing scenario, initialize a new one if this fails:
+try:
+    rstore.select_scenario(sid, verbose=False)
+except:
+    rstore.create_scenario(sid, labels=(LOCI,ALLELES))
+# select existing run, initialize a new one if this fails:
+try:   
+    rstore.select_run(rid)
+    data_available = True
+    special_states = list( rstore.get_special_states()[::-1] )
+except:
+    rstore.init_run(rid, PARAMETERS, FSHAPE, init_len=100)
+# check whether parameters are identical:
+pars = rstore.get_parameters()
+if not utils.parameters_equal(pars, PARAMETERS, verbose=False):
+    data_available = False
+    if not overwrite_run:
+        raise ValueError('parameter values differ from stored values; set `overwrite_run` to `True` in order to overwrite run')
+    else:
+        print 'overwriting run...'
+        rstore.remove_run(rid, sid)
+        rstore.init_run(rid, PARAMETERS, FSHAPE, init_len=100)
+
+# <markdowncell>
+
+# Configure plotting:
+
+# <codecell>
+
 max_figwidth = 15
 figheight = 5
 w = min( N_POPS*(N_LOCI-1), max_figwidth )    # figure width: npops*(nloci-1) but at most 15
 figsize = [w, figheight]
 show_progressbar = False          # BEWARE: enabling progressbar slows down the simulation significantly!
-
-# <markdowncell>
-
-# Simulation run data is stored in an HDF5 file (`storage.RunStore` basically is a wrapper around an `h5py.File` object):
-
-# <codecell>
-
-rstore = storage.RunStore('data/scenario_{0}.h5'.format(snum))
-try: rstore.select_scenario(snum, verbose=False)
-except: rstore.create_scenario(snum, labels=(LOCI,ALLELES))
-try: rstore.remove_run(rnum, snum)
-except: pass
-rstore.init_run(rnum, PARAMETERS, FSHAPE, init_len=100)
 
 # <headingcell level=2>
 
@@ -315,18 +334,7 @@ weights['constant_reproduction'] = R_
 
 # <headingcell level=2>
 
-# 4. Fisherian runaway: Sexy trait fixation
-
-# <markdowncell>
-
-# With the *Wolbachia* infection pattern being stable and female mating preferences not accrueing any costs, Fisherian runaway sexual selection occurs.
-# The outcome is determined by a balance between viability selection ($s$) and sexual selection ($p_r$).
-# If sexual selection is stonger then the runaway results in the fixation of the preferred trait in both populations while the mutant preference allele reaches the same frequency in both populations.
-# 
-# The runaway is favored by *Wolbachia*'s influence on gene flow between the populations.
-# Unidirectional CI results in an asymmetric reduction of effective migration.
-# 
-# <img src="https://docs.google.com/drawings/d/1aTwN83uNDqmScKlsbCzZsZt_VRtBaVfouM6FufWABig/pub?w=381&amp;h=255">
+# 4. Simulation
 
 # <codecell>
 
@@ -346,21 +354,30 @@ print 'p_r    =', pr_p1_baseline
 
 # <codecell>
 
-starttime = time.time()                  # take time for timing report after simulation run
-
-startfreqs = np.zeros(FSHAPE)
-startfreqs[0,0,0,0] = 1.                   # pop1-T1-P0-U
-startfreqs[1,1,0,1] = 1.                   # pop2-T2-P0-W
-# initialize metapopulation with start frequencies:
-metapop = core.MetaPopulation(
-    startfreqs,
-    config=config,
-    generation=0,
-    name='metapopulation'
-)
-# store initial state in database:
-rstore.record_special_state(metapop.generation, 'start')
-rstore.dump_data(metapop)
+if not data_available:
+    starttime = time.time()                  # take time for timing report after simulation run
+    startfreqs = np.zeros(FSHAPE)
+    startfreqs[0,0,0,0] = 1.                   # pop1-T1-P1-U
+    startfreqs[1,1,1,1] = 1.                   # pop2-T2-P2-W
+    # initialize metapopulation with start frequencies:
+    metapop = core.MetaPopulation(
+        startfreqs,
+        config=config,
+        generation=0,
+        name='metapopulation'
+    )
+    # store initial state in database:
+    rstore.record_special_state(metapop.generation, 'start')
+    rstore.dump_data(metapop)
+else:
+    g,desc = special_states.pop()
+    freqs,g = rstore.get_frequencies(g)
+    metapop = core.MetaPopulation(
+        freqs,
+        config=config,
+        generation=g,
+        name='metapopulation'
+    )
 
 # <codecell>
 
@@ -375,15 +392,20 @@ fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <codecell>
 
-metapop.run(
-    n, 
-    weights, 
-    thresh_total=eq, 
-    step=step, 
-    runstore=rstore, 
-    progress_bar=show_progressbar, 
-    verbose=True
-)
+if not data_available:
+    metapop.run(
+        nmax,
+        weights,
+        thresh_total=eq,
+        step=step,
+        runstore=rstore,
+        progress_bar=show_progressbar,
+        verbose=True
+    )
+else:
+    g,desc = special_states.pop()
+    freqs,g = rstore.get_frequencies(g)
+    metapop.set(g, freqs, desc)
 
 # <headingcell level=3>
 
@@ -398,19 +420,33 @@ fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <headingcell level=3>
 
-# 4.3 Introduction of preference alleles
+# 4.3 Introduction of preference alleles P3, P4, and P5
 
 # <codecell>
 
-intro_allele = 'P1'
-metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=False)
-rstore.dump_data(metapop)
-rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
-
-intro_allele = 'P2'
-metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=True)
-rstore.dump_data(metapop)
-rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+if not data_available:
+    intro_allele = 'P3'
+    metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=False)
+    rstore.dump_data(metapop)
+    rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+    intro_allele = 'P5'
+    metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=False)
+    rstore.dump_data(metapop)
+    rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+    
+    intro_allele = 'P4'
+    metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=False)
+    rstore.dump_data(metapop)
+    rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+    intro_allele = 'P5'
+    metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=False)
+    rstore.dump_data(metapop)
+    rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+else:
+    for i in range(4):   # once for each preference allele introduction
+        g,desc = special_states.pop()
+    freqs,g = rstore.get_frequencies(g)
+    metapop.set(g, freqs, desc)
 
 print metapop
 print metapop.overview()
@@ -421,15 +457,20 @@ print metapop.overview()
 
 # <codecell>
 
-metapop.run(
-    n,
-    weights,
-    thresh_total=eq,
-    step=step,
-    runstore=rstore,
-    progress_bar=show_progressbar,
-    verbose=True
-)
+if not data_available:
+    metapop.run(
+        nmax,
+        weights,
+        thresh_total=eq,
+        step=step,
+        runstore=rstore,
+        progress_bar=show_progressbar,
+        verbose=True
+    )
+else:
+    g,desc = special_states.pop()
+    freqs,g = rstore.get_frequencies(g)
+    metapop.set(g, freqs, desc)
 
 # <headingcell level=3>
 
@@ -457,7 +498,8 @@ print TP
 # <codecell>
 
 rstore.flush()
-print utils.timing_report(starttime, metapop.generation)
+if not data_available:
+    print utils.timing_report(starttime, metapop.generation)
 
 # <headingcell level=2>
 
