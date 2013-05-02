@@ -438,4 +438,26 @@ def get_alleles(loci, config):
         out: nested list of ints
     """
     return [config['ALLELES'][config['LOCI'].index(locus)] for locus in loci]
+
+def parameters_equal(pdict1, pdict2, verbose=True):
+    pnames1 = sorted(pdict1.keys())
+    pnames2 = sorted(pdict2.keys())
+    if not pnames1 == pnames2:
+        if verbose:
+            print 'parameters names not the same\n1: %s\n2: %s' % (str(pnames1), str(pnames2))
+        return False
+    for pname in pnames1:
+        p,d = pdict1[pname]
+        pval1,pdesc1 = np.array(p), str(d)
+        p,d = pdict2[pname]
+        pval2,pdesc2 = np.array(p), str(d)
+        if not np.allclose(pval1,pval2):
+            if verbose:
+                print '`%s` parameter: values not the same\n1: %s\n2: %s' % (pname, str(pval1), str(pval2))
+            return False
+        if not pdesc1 == pdesc2:
+            if verbose:
+                print '`%s` parameter: descriptions not the same\n1: %s\n2: %s' % (pname, str(pdesc1), str(pdesc2))
+            return False
+    return True
     
