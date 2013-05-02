@@ -10,12 +10,12 @@ def timestamp():
 
 def empty_current():
     d = {'scenario': None,    # scenario related shortcuts
-         'snum': None,        #   |
+         'sid': None,        #   |
          'loci': None,        #   V
          'alleles': None,     # 
          'description': None, # _____________________
          'run': None,         # run related shortcuts
-         'rnum': None,        #   |
+         'rid': None,        #   |
          'count': None,       #   V
          'generation': None,  #
          'gens': None,        #
@@ -27,27 +27,28 @@ def empty_current():
 
 special_dtype = np.dtype([('generation', 'i'), ('description', 'S64')])
 par_dtype = np.dtype([('name', 'S16'), ('value', 'f')])
+long_par_dtype = np.dtype([('name', 'S16'), ('value', 'f'), ('description', 'S128')])
 
 class RunStore(object):
-    def __init__(self, filename, snum=None, rnum=None):
+    def __init__(self, filename, sid=None, rid=None):
         """
         Open HDF5 file (create if it does not yet exist).
         
-        If scenario number `snum` is given, the corresponding group is
-        opened. The same goes for run number `rnum`.
+        If scenario id `sid` is given, the corresponding group is
+        opened. The same goes for run id `rid`.
     
         Args:
-            snum: int
-                scenario number
-            rnum: int
-                simulation run number
+            sid: int
+                scenario id
+            rid: int
+                simulation run id
         """
         self.f = h5py.File(filename, 'a')
         self.filename = filename
         self.counter = None
         self.current = empty_current()
-        self.select_scenario(snum, verbose=False)
-        self.select_run(rnum, verbose=False)
+        self.select_scenario(sid, verbose=False)
+        self.select_run(rid, verbose=False)
     
     def update_current(self, **kwargs):
         self.current.update(kwargs)
@@ -61,7 +62,7 @@ class RunStore(object):
         Only reset `run` related variables.
         """
         self.counter = None
-        self.update_current(rnum=None, run=None, count=None, generation=None, gens=None, freqs=None, fshape=None, sums=None)
+        self.update_current(rid=None, run=None, count=None, generation=None, gens=None, freqs=None, fshape=None, sums=None)
     
     def close(self):
         self.f.close()
@@ -73,7 +74,7 @@ class RunStore(object):
         """
         self.f.flush()
     
-    def open(self, filename=None, snum=None, rnum=None):
+    def open(self, filename=None, sid=None, rid=None):
         """
         If no filename is provided, the last one used will e re-used.
         """
@@ -81,20 +82,20 @@ class RunStore(object):
             self.filename = filename
         self.f = h5py.File(self.filename, 'a')
         self.reset()
-        self.select_scenario(snum, verbose=False)
-        self.select_run(rnum, verbose=False)
+        self.select_scenario(sid, verbose=False)
+        self.select_run(rid, verbose=False)
         
-    def create_scenario(self, snum, labels, description=None):
+    def create_scenario(self, sid, labels, description=None):
         """
         Args:
-            snum: int
-                scenario number
+            sid: int
+                scenario id
             labels: tuple
                 tuple of loci list and (nested) alleles list
             description: string
                 scenario description
         """
-        sname = 'scenario_{0}'.format(snum)
+        sname = 'scenario_{0}'.format(sid)
         if not sname in self.f:
             scenario = self.f.create_group(sname)
             loci, alleles = labels
@@ -109,35 +110,36 @@ class RunStore(object):
                 description = 'no description available'
             desc = scenario.create_dataset('description', (), h5py.special_dtype(vlen=str))
             desc[()] = description
-            self.update_current(snum=snum, scenario=scenario, loci=loci, alleles=alleles, description=description)
+            self.update_current(sid=sid, scenario=scenario, loci=loci, alleles=alleles, description=description)
             self.reset_run()         # if a `run` was previously selected, it must be rest now to avoid inconsistencies
         else:
-            raise KeyError('{0} already exists. You can select it by calling `select_scenario({1})`.'.format(sname,snum))
+            raise KeyError('{0} already exists. You can select it by calling `select_scenario({1})`.'.format(sname,sid))
         self.flush()
     
-    def init_run(self, rnum, pars, fshape, init_len=100):
+    def init_run(self, rid, pars, fshape, init_len=100):
         scenario = self.current['scenario']
         if scenario is None:
             raise KeyError('select a scenario first')
-        rname = 'run_{0}'.format(rnum)
+        rname = 'run_{0}'.format(rid)
         if rname not in scenario:
             run = scenario.create_group(rname)
             # timestamp as attribute:
             run.attrs['timestamp'] = timestamp()
             # parameters:
             npars = len(pars)   # number of paramters
-            parameters = run.create_dataset('parameters', (npars,), par_dtype)
+            #~ parameters = run.create_dataset('parameters', (npars,), par_dtype)
+            parameters = run.create_dataset('parameters', (npars,), long_par_dtype)
             i = 0
             # backwards compatibility:
             ks = pars.keys()
             if not isinstance(pars[ks[0]], tuple):
                 for name,value in sorted(pars.items()):
-                    parameters[i] = (name, value)
+                    parameters[i] = (name, value, '')
                     i += 1
             # end of backward comp.
             else:
                 for name,(value,desc) in sorted(pars.items()):
-                    parameters[i] = (name, value)
+                    parameters[i] = (name, value, desc)
                     i += 1
             # integer counter:
             self.counter = run.create_dataset('counter', (), 'i')
@@ -151,86 +153,96 @@ class RunStore(object):
             sums = run.create_group('sums')
             for i,loc in enumerate(scenario['loci'][1:]):
                 ds = run['sums'].create_dataset(loc, (init_len,npops,ashape[i+1]), 'f', maxshape=(None,npops,ashape[i+1]))   # create a dataset for each locus
-            self.update_current(rnum=rnum, run=run, gens=gens, freqs=freqs, fshape=fshape, sums=sums)
+            self.update_current(rid=rid, run=run, gens=gens, freqs=freqs, fshape=fshape, sums=sums)
         else:
-            raise KeyError('`{0}` already exists. You can select it by calling `select_run({1})`.'.format(rname,rnum))
+            raise KeyError('`{0}` already exists. You can select it by calling `select_run({1})`.'.format(rname,rid))
     
-    def remove_run(self, rnum, snum):
+    def remove_run(self, rid, sid):
         """
-        For safety reasons, one has to specify run AND scenario number.
+        For safety reasons, one has to specify run AND scenario id.
         """
-        scenario = self.get_scenario(snum)
-        del scenario['run_{0}'.format(rnum)]
-        if rnum == self.current['rnum']:
+        scenario = self.get_scenario(sid)
+        del scenario['run_{0}'.format(rid)]
+        if rid == self.current['rid']:
             self.reset_run()
     
-    def get_scenario(self, snum):
-        return self.f['scenario_{0}'.format(snum)]
+    def get_scenario(self, sid):
+        return self.f['scenario_{0}'.format(sid)]
     
-    def get_run(self, rnum, snum=None):
-        if snum is None:
-            return self.current['scenario']['run_{0}'.format(rnum)]
+    def get_run(self, rid, sid=None):
+        if sid is None:
+            return self.current['scenario']['run_{0}'.format(rid)]
         else:
-            scenario = self.get_scenario(snum)
-            return scenario['run_{0}'.format(rnum)]
+            scenario = self.get_scenario(sid)
+            return scenario['run_{0}'.format(rid)]
     
-    def select_scenario(self, snum, verbose=True):
-        if snum is not None:
+    def get_parameters(self):
+        """
+        Returns a dictionay containing parameters names and values.
+        """
+        pars = {}
+        pdata = self.current['run']['parameters']
+        for pname,pval,pdesc in pdata:
+            pars[pname] = (pval,pdesc)
+        return pars
+    
+    def select_scenario(self, sid, verbose=True):
+        if sid is not None:
             if verbose:
-                print 'selecting scenario {0} from file {1}'.format(snum, self.filename)
-            scenario = self.get_scenario(snum)
+                print 'selecting scenario {0} from file {1}'.format(sid, self.filename)
+            scenario = self.get_scenario(sid)
             loci = list(scenario['loci'][:])
-            alleles = self.get_allele_list(snum=snum, with_pops=True)
+            alleles = self.get_allele_list(sid=sid, with_pops=True)
             try:
                 description = scenario['description'][()]
             except KeyError:   # existing scenarios might not have descriptions
                 description = 'no description available'
                 desc = scenario.create_dataset('description', (), h5py.special_dtype(vlen=str))
                 desc[()] = description
-            self.update_current(scenario=scenario, snum=snum, loci=loci, alleles=alleles, description=description)
+            self.update_current(scenario=scenario, sid=sid, loci=loci, alleles=alleles, description=description)
         else:
             if verbose:
-                print 'please specify a scenario number'
+                print 'please specify a scenario id'
     
-    def select_run(self, rnum, snum=None, verbose=True):
-        if rnum is not None:
-            if snum is not None:
-                self.select_scenario(snum, verbose=verbose)   # this updates `scenario` related current entries and resets all `run` related entries
+    def select_run(self, rid, sid=None, verbose=True):
+        if rid is not None:
+            if sid is not None:
+                self.select_scenario(sid, verbose=verbose)   # this updates `scenario` related current entries and resets all `run` related entries
             if verbose:
-                print 'selecting run {0} from scenario {1} in file {2}'.format(rnum, self.current['snum'], self.filename)
-            run = self.get_run(rnum, snum=snum)
+                print 'selecting run {0} from scenario {1} in file {2}'.format(rid, self.current['sid'], self.filename)
+            run = self.get_run(rid, sid=sid)
             gens = run['generations']
             freqs = run['frequencies']
             fshape = freqs.shape[1:]
             sums = run['sums']
-            self.update_current(rnum=rnum, run=run,  gens=gens, freqs=freqs, fshape=fshape, sums=sums)
+            self.update_current(rid=rid, run=run,  gens=gens, freqs=freqs, fshape=fshape, sums=sums)
             self.counter = run['counter']
             count = self.get_count()
             generation = self.get_last_generation()
             self.update_current(count=count, generation=generation)
         else:
             if verbose:
-                print 'please specify a run number'
+                print 'please specify a run id'
     
-    def update_description(self, description, snum=None):
-        if snum is None:
+    def update_description(self, description, sid=None):
+        if sid is None:
             scenario = self.current['scenario']
         else:
-            scenario = self.get_scenario(snum)
+            scenario = self.get_scenario(sid)
         desc = scenario['description']
         desc[()] = description
-        if snum == self.current['snum']:
+        if sid == self.current['sid']:
             self.update_current(description=description)
     
-    def info(self, snum=None, verbose=False):
+    def info(self, sid=None, verbose=False):
         s = 'file: {0}\n'.format(self.filename)
-        if snum is None:
-            snum = self.current['snum']
-        if snum is not None:
-            scenario = self.get_scenario(snum)
+        if sid is None:
+            sid = self.current['sid']
+        if sid is not None:
+            scenario = self.get_scenario(sid)
             loci = list(scenario['loci'][:])
             alleles = self.get_allele_list(with_pops=True)
-            s += "selected scenario: {0}\n\tpops:\n\t\t{1}\n\tloci:".format(snum, ', '.join(alleles[0]))
+            s += "selected scenario: {0}\n\tpops:\n\t\t{1}\n\tloci:".format(sid, ', '.join(alleles[0]))
             w = max(loci, key=len)
             loc_format = "\t\t{{0:<{0}s}}\t{{1}}\n".format(w)  # adjust width to longest locus name 
             for i,loc in enumerate(loci[1:]):
@@ -238,16 +250,16 @@ class RunStore(object):
             if verbose:
                 description = scenario['description'][()]
                 s += "\tdescription: {0}\n".format(description)
-            if self.rnum is not None:
-                s += 'selected simulation run: {0}\n\tcount / generation: {1} / {2})\n\tfrequency shape: {3}\n]\n'.format(self.rnum, self.counter[()], self.get_last_generation(), self.current['fshape'])
+            if self.rid is not None:
+                s += 'selected simulation run: {0}\n\tcount / generation: {1} / {2})\n\tfrequency shape: {3}\n]\n'.format(self.rid, self.counter[()], self.get_last_generation(), self.current['fshape'])
             else:
                 s += 'no simulation run selected\n'
         else:
             s += 'no scenario selected\n'
         return s
     
-    def full_info(self, snum=None):
-        return self.info(snum=snum, verbose=True)
+    def full_info(self, sid=None):
+        return self.info(sid=sid, verbose=True)
         
     def advance_counter(self):
         self.counter[()] += 1
@@ -270,14 +282,14 @@ class RunStore(object):
         closest = self.get_closest_count(g)
         return self.current['gens'][closest]
     
-    def get_allele_list(self, snum=None, with_pops=False):
+    def get_allele_list(self, sid=None, with_pops=False):
         """
         Returns nested list of alleles (w or w/o `pops`)
         """
-        if snum is None:    # use current
+        if sid is None:    # use current
             scenario = self.current['scenario']
         else:
-            scenario = self.get_scenario(snum)
+            scenario = self.get_scenario(sid)
         if with_pops:
             loci = scenario['loci']
         else:
@@ -390,9 +402,9 @@ class RunStore(object):
         return result
         
 
-def get_frequencies(g, filename, snum, rnum):
+def get_frequencies(g, filename, sid, rid):
     with h5py.File(filename, 'r') as df:    # read-only
-        run = df['/scenario_{0}/run_{1}'.format(snum,rnum)]
+        run = df['/scenario_{0}/run_{1}'.format(sid,rid)]
         generations = run['gens'][:]    # generations array
         idx = np.searchsorted(generations, g)   # get index of generation closest to given g
         return run['freqs'][idx]
