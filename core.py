@@ -419,8 +419,15 @@ class MetaPopulation(object):
         """
         self.panda.data = self.freqs.flatten()
     
-    def load_freqs_from_file(self, g, filename, snum, rnum):
-        self.freqs = storage.get_frequencies(g, filename, snum, rnum)
+    def set(self, g, freqs, desc=None):
+        self.generation = g
+        self.freqs = freqs
+        if desc == 'eq':
+            self.eq = True
+        elif desc == 'max':
+            self.eq = False
+        else:
+            self.eq = 'not determined'
         
     def get_sum(self, allele, pop):
         """

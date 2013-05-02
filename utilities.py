@@ -444,7 +444,7 @@ def parameters_equal(pdict1, pdict2, verbose=True):
     pnames2 = sorted(pdict2.keys())
     if not pnames1 == pnames2:
         if verbose:
-            print 'parameters names not the same\n1: %s\n2: %s' % (str(pnames1), str(pnames2))
+            print 'parameter names not the same\n1: %s\n2: %s' % (str(pnames1), str(pnames2))
         return False
     for pname in pnames1:
         p,d = pdict1[pname]

@@ -188,8 +188,6 @@ class RunStore(object):
     
     def select_scenario(self, sid, verbose=True):
         if sid is not None:
-            if verbose:
-                print 'selecting scenario {0} from file {1}'.format(sid, self.filename)
             scenario = self.get_scenario(sid)
             loci = list(scenario['loci'][:])
             alleles = self.get_allele_list(sid=sid, with_pops=True)
@@ -200,6 +198,8 @@ class RunStore(object):
                 desc = scenario.create_dataset('description', (), h5py.special_dtype(vlen=str))
                 desc[()] = description
             self.update_current(scenario=scenario, sid=sid, loci=loci, alleles=alleles, description=description)
+            if verbose:
+                print 'selecting scenario {0} from file {1}'.format(sid, self.filename)
         else:
             if verbose:
                 print 'please specify a scenario id'
@@ -208,8 +208,6 @@ class RunStore(object):
         if rid is not None:
             if sid is not None:
                 self.select_scenario(sid, verbose=verbose)   # this updates `scenario` related current entries and resets all `run` related entries
-            if verbose:
-                print 'selecting run {0} from scenario {1} in file {2}'.format(rid, self.current['sid'], self.filename)
             run = self.get_run(rid, sid=sid)
             gens = run['generations']
             freqs = run['frequencies']
@@ -220,6 +218,8 @@ class RunStore(object):
             count = self.get_count()
             generation = self.get_last_generation()
             self.update_current(count=count, generation=generation)
+            if verbose:
+                print 'selecting existing run {0} from scenario {1} in file {2}'.format(rid, self.current['sid'], self.filename)
         else:
             if verbose:
                 print 'please specify a run id'
@@ -264,9 +264,12 @@ class RunStore(object):
     def advance_counter(self):
         self.counter[()] += 1
     
-    def get_count(self):
-        return self.counter[()]
-        
+    def get_count(self, g=None):
+        if g is None:
+            return self.counter[()]
+        else:
+            return self.get_closest_count(g)
+            
     def get_closest_count(self, g):
         c = self.get_count()
         return np.argmin(np.abs(self.current['gens'][:c] - g))
@@ -281,6 +284,16 @@ class RunStore(object):
         """
         closest = self.get_closest_count(g)
         return self.current['gens'][closest]
+    
+    def get_frequencies(self, g):
+        """
+        Returns the metapopulation frequencies of the currently selected
+        run for generation g.
+        """
+        closest = self.get_closest_generation(g)
+        c = self.get_count(closest)
+        return self.current['run']['frequencies'][c], closest
+            
     
     def get_allele_list(self, sid=None, with_pops=False):
         """
@@ -368,7 +381,7 @@ class RunStore(object):
     
     def get_current(self):
         return self.current['scenario'], self.current['run']
-        
+    
     def plot_sums(self, figsize=[19,7], **kwargs):
         scenario, run = self.get_current()
         alleles = self.get_allele_list(with_pops=True)
