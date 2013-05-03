@@ -246,7 +246,7 @@ def extend(arr, dim, pos):
         indexer[p] = slice(None)
     return arr[indexer]
 
-def sum_along_axes(arr, axes):
+def sum_along_axes(arr, axes, squeeze_first=True):
     """
     Sum along multiple axes.
     
@@ -263,13 +263,10 @@ def sum_along_axes(arr, axes):
     """
     if isinstance(axes,int): axes = [axes]       # enable passing of a single int axis
     _axes = range(arr.ndim)
-    #~ print 'axes:', axes
-    #~ print '_axes:', _axes,
     for a in axes: _axes.remove(a)
-    #~ print '-->', _axes
-    res = np.apply_over_axes(sum, arr, _axes).squeeze()
-    #~ print 'shape of result:', np.shape(res)
-    return res   #np.apply_over_axes(sum, arr, _axes).squeeze()
+    if not squeeze_first:
+        return np.array( [np.apply_over_axes(sum, arr, _axes).squeeze()] )
+    return np.apply_over_axes(sum, arr, _axes).squeeze()   # apply_over_axes outputs the same dimension as the input
 
 def sum_over_axes(arr, axes):
     if isinstance(axes,int): axes = [axes]       # enable passing of a single int axis

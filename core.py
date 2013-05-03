@@ -247,15 +247,6 @@ class PreferenceWeight(ReproductionWeight):
             self.array[idx] = tmp
         self.array = np.nan_to_num(self.array)
         
-    #~ def calculate(self, preferred):
-        #~ self.set_to_ones()
-        #~ for sno, prefs in self.preferences:
-            #~ for pop, ano, bno, pr in prefs:
-                #~ tmp = 1./(1-pr*pt*(1-preferred[pop,ano,bno]))
-                #~ self.array[pop,sno] *= (1-pr)*tmp
-                #~ self.array[pop,sno,ano,bno] = tmp
-        #~ self.array = np.nan_to_num(self.array)
-
 class GeneralizedPreferenceWeight(ReproductionWeight):
     def __init__(self, name, axes, pref_desc, config, unstack_levels=[], **parameters):
         """
@@ -284,7 +275,7 @@ class GeneralizedPreferenceWeight(ReproductionWeight):
         adict = config['ADICT']
         n_prefs = fshape[loci.index(self.pref_locus)]
         self.cshape = tuple( [fshape[loci.index(a)] for a in self.cue_axes] )  # cue_shape
-        rprobs = np.zeros( (n_prefs,)+self.cshape, float )   # rejection probabilities array with default baseline of 0.
+        rprobs = np.zeros( (n_prefs,)+self.cshape, float )   # rejection probabilities array with default baseline of 0
         self.pref_desc = pref_desc
         for pref_allele,prefs in sorted(pref_desc.items()):
             prefidx = adict[pref_allele][1]   # retrieve allele index
@@ -316,11 +307,21 @@ class GeneralizedPreferenceWeight(ReproductionWeight):
             pt: float
                 transition probability
         """
-        #~ self.set_to_ones()
-        rej = self.rprobs[np.newaxis,...]    # bring rejection probabilities to correct shape
+        # shape of rprobs:      (p, c1, c2, ...)    p - number of preference alleles, c1 - number of alleles at cue axis 1, ...
+        # shape of rej:   (pop,  p, c1, c2, ...)    pop - number of populations
+        # shape of x:     (pop, c1, c2, ...)
+        # shape of cues:  (pop, na, c1, c2, ...)   na - newaxis
+        # shape of norm:  (pop,  p)
+        # shape of array: (pop,  p, c1, c2, ...)
+        rej = self.rprobs[np.newaxis,...]    # bring rejection probabilities to correct shape (newaxis: preference axis)
         cues = x[:,np.newaxis,...]           # same for preference cues
-        norm = 1. - self.pt * utils.sum_along_axes(rej*cues, [0,1])  # sum along population and preference a.k.a. sum over all cues
-        self.array = np.nan_to_num( (1.-rej)/norm[...,np.newaxis] )
+        if self.shape[0] == 1:   # n_pops = 1
+            norm = 1. - self.pt * utils.sum_along_axes(rej*cues, [0,1], squeeze_first=False)  # sum along population and preference a.k.a. sum over all cues
+        else:
+            norm = 1. - self.pt * utils.sum_along_axes(rej*cues, [0,1])  # sum along population and preference a.k.a. sum over all cues
+        dim = len(self.shape)
+        #~ self.array = np.nan_to_num( (1.-rej)/norm[...,np.newaxis] )
+        self.array = np.nan_to_num( (1.-rej)/utils.extend(norm, dim, [0,1]) )
     
     def __str__(self):
         s = Weight.__str__(self) + '\n\n'
@@ -344,6 +345,10 @@ class MetaPopulation(object):
         self.allele_idxs = config['ADICT']
         self.populations = self.alleles[0]
         self.n_pops = len(self.populations)
+        if self.n_pops == 1:
+            self.squeeze_first = False   # we must prevent squeezing of the first (population) dimension when summing along axes
+        else:
+            self.squeeze_first = True
         self.normalize()          # normalization must happen after defining n_pops (in case n_pops == 1)
         self.generation = generation
         self.name = name
@@ -474,7 +479,8 @@ class MetaPopulation(object):
                 popname = self.populations[pop]
             #~ print popname, pop
             return sum_along_axes(self.freqs, level)[pop]
-        return sum_along_axes(self.freqs, level)
+        return sum_along_axes(self.freqs, level, squeeze_first=self.squeeze_first)
+        #~ return sum_along_axes(self.freqs, level)
     
     def all_sums(self):
         """
@@ -537,10 +543,11 @@ class MetaPopulation(object):
         if not isinstance(pop,int):
             pop = self.allele_idxs[pop][1]
         loc,al = self.allele_idxs[allele]
-        if self.n_pops == 1:
-            lfreqs = sum_along_axes(self.freqs, [0,loc])
-        else:
-            lfreqs = sum_along_axes(self.freqs, [0,loc])[pop]
+        lfreqs = sum_along_axes(self.freqs, [0,loc], squeeze_first=self.squeeze_first)[pop]
+        #~ if self.n_pops == 1:
+            #~ lfreqs = sum_along_axes(self.freqs, [0,loc])
+        #~ else:
+            #~ lfreqs = sum_along_axes(self.freqs, [0,loc])[pop]
         try:
             assert lfreqs[al] == 0.
         except AssertionError:
@@ -657,14 +664,9 @@ class MetaPopulation(object):
             females = extend( self.freqs, self.repro_dim, self.repro_idxs['female'] )
             males = extend( self.freqs, self.repro_dim, self.repro_idxs['male'] )
             #~ self.freqs = sum_along_axes( females * males * R * SR.extended() * TP.extended(), self.repro_idxs['offspring'] )
-            if self.n_pops == 1:
-                self.freqs[0] = sum_along_axes( females * males * \
-                                         REPRO_CONST * \
-                                         REPRO_DYN, self.repro_idxs['offspring'] )
-            else:
-                self.freqs = sum_along_axes( females * males * \
-                                         REPRO_CONST * \
-                                         REPRO_DYN, self.repro_idxs['offspring'] )
+            self.freqs = sum_along_axes( females * males * REPRO_CONST * REPRO_DYN,
+                self.repro_idxs['offspring'],
+                squeeze_first=self.squeeze_first )
             self.normalize()
             #~ print 'freqs %s:\n%s' % (np.shape(self.freqs), self.freqs)
             
