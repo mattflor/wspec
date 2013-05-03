@@ -77,7 +77,7 @@ PARAMETERS = {
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
     'P0': {'baseline': 0.},
-    'P1': {'baseline': 0.4, 'T1': 0.}
+    'P1': {'baseline': 1., 'T1': 0.}
 }
 PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
 # make parameter names locally available:
@@ -262,7 +262,7 @@ weights['constant_reproduction'] = R_
 if not data_available:
     starttime = time.time()                  # take time for timing report after simulation run
     startfreqs = np.zeros(FSHAPE)
-    startfreqs[0,1,0] = 1.                   # pop1-T0-P0
+    startfreqs[0,0,0] = 1.                   # pop1-T0-P0
     # initialize metapopulation with start frequencies:
     metapop = core.MetaPopulation(
         startfreqs,
@@ -289,37 +289,6 @@ print metapop
 print metapop.overview()
 fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
-# <markdowncell>
-
-# Run the simulation until an equilibrium is reached (but for `nmax` generations at most):
-
-# <codecell>
-
-if not data_available:
-    metapop.run(
-        nmax,
-        weights,
-        thresh_total=eq,
-        step=step,
-        runstore=rstore,
-        progress_bar=show_progressbar,
-        verbose=True
-    )
-else:
-    g,desc = special_states.pop()
-    freqs,g = rstore.get_frequencies(g)
-    metapop.set(g, freqs, desc)
-
-# <headingcell level=3>
-
-# Equilibrium
-
-# <codecell>
-
-print metapop
-print metapop.overview()
-fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
-
 # <headingcell level=3>
 
 # Introduction of trait allele T1
@@ -327,10 +296,10 @@ fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 # <codecell>
 
 if not data_available:
-    #intro_allele = 'T1'
-    #metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=False)
-    #rstore.dump_data(metapop)
-    #rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+    intro_allele = 'T1'
+    metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=False)
+    rstore.dump_data(metapop)
+    rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
     
     intro_allele = 'P1'
     metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=True)
@@ -401,7 +370,6 @@ if not data_available:
 # <codecell>
 
 fig = rstore.plot_sums(figsize=[max_figwidth, figheight])
-show()
 
 # <codecell>
 

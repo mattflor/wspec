@@ -3,7 +3,7 @@
 
 # <headingcell level=1>
 
-#     Scenario 3
+# Scenario 2
 
 # <codecell>
 
@@ -29,15 +29,22 @@ np.set_printoptions(precision=4, suppress=True, linewidth=100)
 # * Two populations linked by migration
 # 
 # * Initial state:
-#     * Trait divergence: T1 adaptive and fixed in population 1, T2 in population 2
-#     * Divergence at the preference locus: P1 (T1) fixed in population 1, P2 (T2) in population 2
-#     * *Wolbachia* infection in population 2, Population 1 is uninfected
+# 
+#     * Trait T1 adaptive and fixed in population 1, T2 in population 2
+# 
+#     * Preference allele P0 (non-discriminating) fixed in both populations
+# 
+# * Population 1 is uninfected, *Wolbachia* infection in population 2
 # 
 # * Order of events:
-#     1. Secondary contact  $\rightarrow$  selection-migration equilibrium
-#     2. Introduction of non-discriminating preference allele in both populations: P0  $\rightarrow$  new equilibrium
 # 
-# <img src="https://docs.google.com/drawings/d/1YnduXFVTYDddSOio4AINo6Elb7y8zStgfQoKi2E-auo/pub?w=691&amp;h=577">
+#     1.  Secondary contact  
+#         $\rightarrow$  selection-migration equilibrium
+# 
+#     2.  Introduction of a preference for T1 in population 1, P1 (T1), and of a preference for T2 in population 2, P2 (T2)  
+#         $\rightarrow$  new equilibrium
+# 
+# <img src="https://docs.google.com/drawings/d/1cVpm0KnTaBAAAc-N_EJkooz00czb6_FnHaDZHaOLNWc/pub?w=691&amp;h=577">
 
 # <markdowncell>
 
@@ -71,28 +78,28 @@ print utils.loci2string(LOCI, ALLELES)
 
 # <codecell>
 
-sid = 3     # scenario id
-rid = 'D'     # id of simulation run
+sid = 2     # scenario id
+rid = 'test'     # id of simulation run
 
 # <codecell>
 
 PARAMETERS = {
-    'lCI': (0.9, 'CI level'),                     # level of cytoplasmic incompatibility
-    't': (0.9, 'transmission rate'),             # transmission of Wolbachia
-    'f': (0.1, 'fecundity reduction'),            # Wolbachia-infected females are less fecund
-    'm': (0.01, 'migration rate'),                # symmetric migration
-    's': (0.1, 'selection coefficient'),           # selection advantage for adaptive trait
-    'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
-    'intro': (0.001, 'introduction frequency'),   # introduction frequency of preference mutant allele
+    'lCI': (0.9, 'CI level'),                   # level of cytoplasmic incompatibility
+    't': (0.9, 'transmission rate'),            # transmission of Wolbachia
+    'f': (0.1, 'fecundity reduction'),          # Wolbachia-infected females are less fecund
+    'm': (0.01, 'migration rate'),              # symmetric migration
+    's': (0.1, 'selection coefficient'),        # selection advantage for adaptive trait
+    'pt': (1., 'transition probability'),       # probability of transition into another mating round
+    'intro': (0.001, 'introduction frequency'), # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
-    'nmax': (30000, 'max generation'),          # max number of generations to iterate for each stage of the simulation
+    'nmax': (300000, 'max generation'),          # max number of generations to iterate for each stage of the simulation
     'step': (10, 'storage stepsize')            # store metapopulation state every `step` generations
 }
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
     'P0': {'baseline': 0.},
-    'P1': {'baseline': 1., 'T1': 0.},
-    'P2': {'baseline': 1., 'T2': 0.}
+    'P1': {'baseline': 0.1, 'T1': 0.},
+    'P2': {'baseline': 0.1, 'T2': 0.}
 }
 PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
 # make parameter names locally available:
@@ -332,7 +339,18 @@ weights['constant_reproduction'] = R_
 
 # <headingcell level=2>
 
-# 4. Simulation
+# 4. Reinforcement
+
+# <markdowncell>
+
+# With the *Wolbachia* infection pattern being stable and female mating preferences being costly, reinforcement may occur.
+# The outcome is determined by a balance between viability selection ($s$) and sexual selection ($p_r$).
+# If sexual selection is stonger then the runaway results in the fixation of the preferred trait in both populations while the mutant preference allele reaches the same frequency in both populations.
+# 
+# The runaway is favored by *Wolbachia*'s influence on gene flow between the populations.
+# Unidirectional CI results in an asymmetric reduction of effective migration.
+# 
+# <img src="https://docs.google.com/drawings/d/1aTwN83uNDqmScKlsbCzZsZt_VRtBaVfouM6FufWABig/pub?w=381&amp;h=255">
 
 # <codecell>
 
@@ -355,8 +373,8 @@ print 'p_r    =', pr_p1_baseline
 if not data_available:
     starttime = time.time()                  # take time for timing report after simulation run
     startfreqs = np.zeros(FSHAPE)
-    startfreqs[0,0,1,0] = 1.                   # pop1-T1-P1-U
-    startfreqs[1,1,2,1] = 1.                   # pop2-T2-P2-W
+    startfreqs[0,0,0,0] = 1.                   # pop1-T1-P0-U
+    startfreqs[1,1,0,1] = 1.                   # pop2-T2-P0-W
     # initialize metapopulation with start frequencies:
     metapop = core.MetaPopulation(
         startfreqs,
@@ -418,22 +436,23 @@ fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <headingcell level=3>
 
-# 4.3 Introduction of preference allele P0
+# 4.3 Introduction of preference alleles
 
 # <codecell>
 
 if not data_available:
-    intro_allele = 'P0'
+    intro_allele = 'P1'
     metapop.introduce_allele('pop1', intro_allele, intro_freq=intro, advance_generation_count=False)
     rstore.dump_data(metapop)
     rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
     
+    intro_allele = 'P2'
     metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=True)
     rstore.dump_data(metapop)
     rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
 else:
     g,desc = special_states.pop()
-    g,desc = special_states.pop()    # we need to do this twice because the introduction of P0 in the two populations is stored separately
+    g,desc = special_states.pop()        # we need to do this twice because the introduction of P1 and P2 is stored separately
     freqs,g = rstore.get_frequencies(g)
     metapop.set(g, freqs, desc)
 

@@ -72,15 +72,15 @@ print utils.loci2string(LOCI, ALLELES)
 # <codecell>
 
 sid = 4     # scenario id
-rid = 'B'     # id of simulation run
+rid = 'test'     # id of simulation run
 
 # <codecell>
 
 PARAMETERS = {
     'lCI': (0.9, 'CI level'),                     # level of cytoplasmic incompatibility
-    't': (0.9, 'transmission rate'),             # transmission of Wolbachia
-    'f': (0.1, 'fecundity reduction'),            # Wolbachia-infected females are less fecund
-    'm': (0.01, 'migration rate'),                # symmetric migration
+    't': (0.87, 'transmission rate'),             # transmission of Wolbachia
+    'f': (0., 'fecundity reduction'),            # Wolbachia-infected females are less fecund
+    'm': (0.005, 'migration rate'),                # symmetric migration
     's': (0.1, 'selection coefficient'),           # selection advantage for adaptive trait
     'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'),   # introduction frequency of preference mutant allele
@@ -91,7 +91,7 @@ PARAMETERS = {
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
     'P1': {'baseline': 0.2, 'T1': 0.},
-    'P2': {'baseline': 0.5, 'T2': 0.},
+    'P2': {'baseline': 0.2, 'T2': 0.},
     'P3': {'baseline': 1., 'T1': 0.},
     'P4': {'baseline': 1., 'T2': 0.},
     'P5': {'baseline': 0.}
@@ -508,9 +508,11 @@ if not data_available:
 # <codecell>
 
 fig = rstore.plot_sums(figsize=[max_figwidth, figheight])
-show()
 
 # <codecell>
 
 rstore.close()
+
+# <codecell>
+
 

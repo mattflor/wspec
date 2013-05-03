@@ -85,7 +85,7 @@ PARAMETERS = {
     'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'),   # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
-    'nmax': (30000, 'max generation'),          # max number of generations to iterate for each stage of the simulation
+    'nmax': (50000, 'max generation'),          # max number of generations to iterate for each stage of the simulation
     'step': (10, 'storage stepsize')            # store metapopulation state every `step` generations
 }
 # For mating preference parameters, we use a different notation:
@@ -508,7 +508,6 @@ if not data_available:
 # <codecell>
 
 fig = rstore.plot_sums(figsize=[max_figwidth, figheight])
-show()
 
 # <codecell>
 

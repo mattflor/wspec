@@ -114,7 +114,7 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-overwrite_run = True
+overwrite_run = False
 data_available = False
 rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
 # select existing scenario, initialize a new one if this fails:
@@ -516,7 +516,6 @@ if not data_available:
 # <codecell>
 
 fig = rstore.plot_sums(figsize=[max_figwidth, figheight])
-show()
 
 # <codecell>
 

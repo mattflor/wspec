@@ -516,7 +516,6 @@ if not data_available:
 # <codecell>
 
 fig = rstore.plot_sums(figsize=[max_figwidth, figheight])
-show()
 
 # <codecell>
 
