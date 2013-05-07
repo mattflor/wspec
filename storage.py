@@ -111,7 +111,8 @@ class RunStore(object):
             desc = scenario.create_dataset('description', (), h5py.special_dtype(vlen=str))
             desc[()] = description
             self.update_current(sid=sid, scenario=scenario, loci=loci, alleles=alleles, description=description)
-            self.reset_run()         # if a `run` was previously selected, it must be rest now to avoid inconsistencies
+            self.reset_run()         # if a `run` was previously selected, it must be reset now to avoid inconsistencies
+            return scenario
         else:
             raise KeyError('{0} already exists. You can select it by calling `select_scenario({1})`.'.format(sname,sid))
         self.flush()
@@ -154,6 +155,7 @@ class RunStore(object):
             for i,loc in enumerate(scenario['loci'][1:]):
                 ds = run['sums'].create_dataset(loc, (init_len,npops,ashape[i+1]), 'f', maxshape=(None,npops,ashape[i+1]))   # create a dataset for each locus
             self.update_current(rid=rid, run=run, gens=gens, freqs=freqs, fshape=fshape, sums=sums)
+            return run
         else:
             raise KeyError('`{0}` already exists. You can select it by calling `select_run({1})`.'.format(rname,rid))
     
@@ -200,6 +202,7 @@ class RunStore(object):
             self.update_current(scenario=scenario, sid=sid, loci=loci, alleles=alleles, description=description)
             if verbose:
                 print 'selecting scenario {0} from file {1}'.format(sid, self.filename)
+            return scenario
         else:
             if verbose:
                 print 'please specify a scenario id'
@@ -220,6 +223,7 @@ class RunStore(object):
             self.update_current(count=count, generation=generation)
             if verbose:
                 print 'selecting existing run {0} from scenario {1} in file {2}'.format(rid, self.current['sid'], self.filename)
+            return run
         else:
             if verbose:
                 print 'please specify a run id'
