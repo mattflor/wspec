@@ -198,13 +198,13 @@ def configure_locals(LOCI, ALLELES, parameters):
     return config
 
 def timing_report(starttime, generation):
-    s = 'Simulation run completed:\n'
+    s = 'Simulation run completed.\n'
     seconds = time.time()-starttime
     hhmmss = str(datetime.timedelta(seconds=int(seconds)))
-    s += '    Generation: {0}\n    Elapsed Time (hours:minutes:seconds): {1}\n'.format(generation, hhmmss)
+    s += 'Generation: {0}\nElapsed Time (hours:minutes:seconds): {1}\n'.format(generation, hhmmss)
     pergen = seconds / generation
     #~ hhmmss = str(datetime.timedelta(seconds=int(pergen)))
-    s += '    Time per generation (seconds): %.2g' % pergen
+    s += 'Time per generation (seconds): %.2g' % pergen
     return s
 
 
