@@ -118,13 +118,13 @@ def classify(diff, difftype=2, thresh=1e-4):
 
 # <codecell>
 
-sid = '2screen1'     # scenario id
+sid = '2screen2'     # scenario id
 PARAMETERS = {
     'lCI': (0.9, 'CI level'),                   # level of cytoplasmic incompatibility
     't': (0.9, 'transmission rate'),            # transmission of Wolbachia
     'f': (0.1, 'fecundity reduction'),          # Wolbachia-infected females are less fecund
     'm': (0.01, 'migration rate'),              # symmetric migration
-    's': (0.1, 'selection coefficient'),        # selection advantage for adaptive trait
+    'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'), # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
     'nmin': (1000, 'min generation'),            # run at least `nmin` generations in search of equilibrium
@@ -142,7 +142,7 @@ print utils.params2string(PARAMETERS)
 
 n = 10000
 
-screening_dtype = np.dtype([('pr', 'f'), ('pt', 'f'), ('diff', 'f')])
+screening_dtype = np.dtype([('pr', 'f'), ('s', 'f'), ('diff', 'f')])
 rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
 # select existing scenario, initialize a new one if this fails:
 try:
@@ -163,14 +163,13 @@ if n >= maxcount:
 # <codecell>
 
 for i in range(n):
-    # pr = npr.random()                     # draw from a uniform distribution over [0,1)
-    # pt = npr.random()                     # draw from a uniform distribution over [0,1)
+    # s = npr.random()                      # draw from a uniform distribution [0,1)
+    # pr = npr.random()                     # draw from a uniform distribution [0,1)
     # we use a U-shaped beta function (low and high values more likely than intermediate ones)
     # to better explore the corners:
+    s  = npr.beta(a=0.7, b=0.7)
     pr = npr.beta(a=0.7, b=0.7)
-    pt = npr.beta(a=0.7, b=0.7)
-    
-    PARAMETERS['pt'] = (pt, 'transition probability')       # probability of transition into another mating round
+    PARAMETERS['s'] = (s, 'selection coefficient')        # selection advantage for adaptive trait
     PARAMETERS['pr'] = (pr, 'rejection probability')
     # For mating preference parameters, we use a different notation:
     trait_preferences = {                        # female mating preferences (rejection probabilities)
@@ -178,7 +177,7 @@ for i in range(n):
         'P1': {'baseline': pr, 'T1': 0.},
         'P2': {'baseline': pr, 'T2': 0.}
     }
-    rid = 'pr{0:.12f}_pt{1:.12f}'.format(pr,pt)      # generate id of simulation run based on pr and pt values
+    rid = 'pr{0:.12f}_s{1:.12f}'.format(pr,s)      # generate id of simulation run based on pr and pt values
     PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
     # make parameter names locally available:
     config = utils.configure_locals(LOCI, ALLELES, PARAMETERS)
@@ -370,11 +369,11 @@ for i in range(n):
         
         #diff = popdiff2(metapop, initial)[0,1]
         diff = popdiff(metapop)[0,1] - base_diff
-        scenario['screening'][i] = (pr, pt, diff)
+        scenario['screening'][i] = (pr, s, diff)
         scenario['counter'][()] += 1
         
         print '\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
-        print 'i = {0}\npr = {1}\npt = {2}\ndiff = {3}\n'.format(i,pr,pt,diff)
+        print 'i = {0}\npr = {1}\ns  = {2}\ndiff = {3}\n'.format(i,pr,s,diff)
         print metapop
         print metapop.overview()
         print
@@ -388,7 +387,7 @@ for i in range(n):
 
 c = scenario['counter'][()]
 diffs = np.array( [[x,y,z] for (x,y,z) in scenario['screening'][:c]] )    # convert lenght n array of 3-tuples to array of shape (n,3)
-print '   pr      pt      diff   '
+print '   pr      s       diff   '
 print '--------------------------'
 print diffs
 
@@ -411,7 +410,7 @@ plt.colorbar() # draw colorbar
 plt.xlim(0,1)
 plt.ylim(0,1)
 plt.xlabel('rejection probability')
-plt.ylabel('transition probability')
+plt.ylabel('selection coefficient')
 
 # <codecell>
 
