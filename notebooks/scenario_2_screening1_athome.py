@@ -457,7 +457,8 @@ cax.set_yticklabels(['--1.0', '--0.75', '--0.5', '--0.25', '0.0', '0.25', '0.5',
 cax.set_ylabel(r'$\xleftarrow{\mathmakebox[8em]{\textstyle\text{decreasing}}}$ {\large Divergence} $\xrightarrow{\mathmakebox[8em]{\textstyle\text{increasing}}}$')
 plt.setp(cax.yaxis.get_ticklines(minor=False), markersize=0)
 
-plt.scatter(X, Y, marker='x', c='0.2', s=1)
+# uncomment the following line to show screening data points:
+#plt.scatter(X, Y, marker='x', c='0.2', s=1)
 
 plt.xlabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Mating preference} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
     multialignment='left')
