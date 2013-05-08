@@ -11,6 +11,8 @@ import sys, types, time, os, inspect, shutil, pprint, cPickle, gzip, tarfile, pp
 import numpy as np
 import numpy.random as npr
 import pandas as pd
+from matplotlib.mlab import griddata
+from matplotlib import rc, font_manager
 import matplotlib.pyplot as plt
 from IPython.core.display import Image
 # wspec moduls:
@@ -411,6 +413,77 @@ plt.xlim(0,1)
 plt.ylim(0,1)
 plt.xlabel('rejection probability')
 plt.ylabel('selection coefficient')
+
+# <codecell>
+
+# set up figure environment:
+fig_width_pt = 500.0                    # Get this from LaTeX using \showthe\columnwidth
+inches_per_pt = 1.0/72.27               # Convert pt to inches
+fig_width = fig_width_pt*inches_per_pt  # width in inches
+fig_height =fig_width *0.75             # height in inches
+fig_size = [fig_width,fig_height]
+params = {'backend': 'ps',
+          'text.usetex': True,
+          'text.family': 'sans-serif',
+          'text.latex.preamble': [r"\usepackage{mathtools}"],   # we need this for the \mathmakebox command
+          'axes.labelsize': 10,
+          'text.fontsize': 12,
+          'legend.fontsize': 10,
+          'xtick.labelsize': 10,
+          'ytick.labelsize': 10,
+          'figure.figsize': fig_size}
+plt.rcParams.update(params)
+ticks_font = font_manager.FontProperties(
+    family='Helvetica',
+    style='normal',
+    size=10,
+    weight='normal',
+    stretch='normal')
+
+# actual data:
+X = diffs[:,0]
+Y = diffs[:,1]
+Z = diffs[:,2]
+
+# generate griddata for contour plot:
+numspaces = int(math.sqrt(n))
+xi = linspace(0., 1., 200)
+yi = linspace(0., 1., 200)
+zi = griddata(X, Y, Z, xi, yi, interp='nn')
+
+figure(1, figsize=fig_size)
+# uncomment the following two lines in order to add contoor lines:
+#levels = [0., 0.05]
+#plt.contour(xi, yi, zi, levels, linewidths=0.5, colors='k')
+plt.contourf(xi, yi, zi, cmap=plt.cm.PRGn, vmin=-1., vmax=1.)
+#plt.imshow(zi, extent=(0,1,0,1), cmap=plt.cm.PRGn, origin='lower', vmin=-1., vmax=1., aspect='auto', interpolation='bilinear')
+plt.clim(-1., 1.)
+plt.xlim(0, 1)
+plt.ylim(0, 1)
+ax = gca()
+ax.grid(False)
+ax.set_aspect(1.)
+ax.xaxis.labelpad = 20
+ax.yaxis.labelpad = 20
+ax.set_xticklabels(ax.get_xticks(), ticks_font)
+ax.set_yticklabels(ax.get_yticks(), ticks_font)
+
+# add a colorbar:
+cbar = plt.colorbar(ticks=[-1., -0.75, -0.5, -0.25, 0., 0.25, 0.5, 0.75, 1.])
+cax = cbar.ax
+cax.set_yticklabels(['--1.0', '--0.75', '--0.5', '--0.25', '0.0', '0.25', '0.5', '0.75', '1.0'])
+cax.set_ylabel(r'$\xleftarrow{\mathmakebox[8em]{\textstyle\text{decreasing}}}$ {\large Divergence} $\xrightarrow{\mathmakebox[8em]{\textstyle\text{increasing}}}$')
+plt.setp(cax.yaxis.get_ticklines(minor=False), markersize=0)
+
+plt.xlabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Mating preference} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
+    multialignment='left')
+plt.ylabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Viability selection} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
+    multialignment='center')
+plt.text(0.13, 0.5, r'No spread of\\mating preferences', color='0.4', size=12, ha='center', va='center', multialignment='center', rotation='vertical')
+plt.text(0.9, 0.6, r'\textbf{Reinforcement}', color='w', size=14, ha='right')
+plt.text(0.97, 0.02, r'\textbf{Runaway}', color='w', size=14, ha='right', va='bottom')
+plt.text(0., -0.05, r'Rejection probability', ha='left', va='top')
+plt.text(-0.1, 0., r'Selection coefficient', ha='left', va='bottom', rotation='vertical')
 
 # <codecell>
 
