@@ -99,21 +99,31 @@ def popdiff(metapop):
 
 # <codecell>
 
-sid = '2screen1'     # scenario id
+sid = '2screen1b'     # scenario id
 PARAMETERS = {
     'lCI': (0.9, 'CI level'),                   # level of cytoplasmic incompatibility
-    't': (0.9, 'transmission rate'),            # transmission of Wolbachia
-    'f': (0.1, 'fecundity reduction'),          # Wolbachia-infected females are less fecund
-    'm': (0.01, 'migration rate'),              # symmetric migration
+    't': (0.87, 'transmission rate'),            # transmission of Wolbachia
+    'f': (0., 'fecundity reduction'),          # Wolbachia-infected females are less fecund
+    'm': (0.006, 'migration rate'),              # symmetric migration
     's': (0.1, 'selection coefficient'),        # selection advantage for adaptive trait
-    'intro': (0.001, 'introduction frequency'), # introduction frequency of preference mutant allele
+    'intro': (0.01, 'introduction frequency'), # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
     'nmin': (1000, 'min generation'),            # run at least `nmin` generations in search of equilibrium
     'nmax': (300000, 'max generation'),         # max number of generations to iterate for each stage of the simulation
-    'step': (10, 'storage stepsize')            # store metapopulation state every `step` generations
+    'step': (20, 'storage stepsize')            # store metapopulation state every `step` generations
 }
+config = utils.configure_locals(LOCI, ALLELES, PARAMETERS)
+locals().update(config)
 print 'Parameters that are the same for all runs in the screening:\n'
 print utils.params2string(PARAMETERS)
+
+# <markdowncell>
+
+# Critical migration rate for these Wolbachia parameters:
+
+# <codecell>
+
+print 'm_crit =', np.min(analytical.mcrit_IMA(f, lCI, s, t), analytical.mcrit_UMA(f, lCI, s, t))
 
 # <markdowncell>
 
@@ -121,7 +131,7 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-n = 500
+n = 2000
 
 screening_dtype = np.dtype([('pr', 'f'), ('pt', 'f'), ('diff', 'f')])
 #rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
@@ -458,7 +468,7 @@ cax.set_ylabel(r'$\xleftarrow{\mathmakebox[8em]{\textstyle\text{decreasing}}}$ {
 plt.setp(cax.yaxis.get_ticklines(minor=False), markersize=0)
 
 # uncomment the following line to show screening data points:
-#plt.scatter(X, Y, marker='x', c='0.2', s=1)
+#plt.scatter(X, Y, marker='o', c='0.2', s=2)
 
 plt.xlabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Mating preference} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
     multialignment='left')
