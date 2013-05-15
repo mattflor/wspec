@@ -24,7 +24,7 @@ for mod in [core,storage,analytical,utils,viz]:     # reload the wspec modules i
     
 #np.set_printoptions(precision=4, suppress=True, linewidth=100)
 np.set_printoptions(suppress=True, linewidth=100)
-npr.seed(94832)
+npr.seed(542138)
 
 # <markdowncell>
 
@@ -120,13 +120,13 @@ def classify(diff, difftype=2, thresh=1e-4):
 
 # <codecell>
 
-sid = '2screen2'     # scenario id
+sid = '2screen2b'     # scenario id
 PARAMETERS = {
     'lCI': (0.9, 'CI level'),                   # level of cytoplasmic incompatibility
     't': (0.9, 'transmission rate'),            # transmission of Wolbachia
     'f': (0.1, 'fecundity reduction'),          # Wolbachia-infected females are less fecund
     'm': (0.01, 'migration rate'),              # symmetric migration
-    'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
+    'pt': (0.95, 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'), # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
     'nmin': (1000, 'min generation'),            # run at least `nmin` generations in search of equilibrium
@@ -142,7 +142,7 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-n = 11000
+n = 3500
 
 screening_dtype = np.dtype([('pr', 'f'), ('s', 'f'), ('diff', 'f')])
 rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
@@ -165,17 +165,21 @@ if n >= maxcount:
 # <codecell>
 
 for i in range(n):
-    if i <= 10000:
+    if i <= 2000:
         # we use a U-shaped beta function (low and high values more likely than intermediate ones)
         # to better explore the corners:
-        s  = npr.beta(a=0.7, b=0.7)
-        pr = npr.beta(a=0.7, b=0.7)
-    elif 10000 < i <= 10500:
+        s  = 0.5*npr.beta(a=0.7, b=0.7)        #  s in [0, 0.5)
+        pr = npr.beta(a=0.7, b=0.7)            #  pr in [0, 1)
+    elif 2000 < i <= 2500:
         s  = npr.random()                      # draw from a uniform distribution [0, 1)
-        pr = 0.2 + 0.1*npr.random()            # draw from a uniform distribution [0.2, 0.3)
+        pr = 0.18 + 0.05*npr.random()          # draw from a uniform distribution [0.13, 0.23)
+    elif 2500 <= i < 3000:
+        pr = 0.2 + 0.8*npr.random()            # draw from a uniform distribution [0.2, 1.)
+        s_lin = 0.06 + 0.08*pr
+        s  = s_lin + 0.04*(npr.random()-0.5)
     else:
-        s  = 0.1*npr.random()                  # draw from a uniform distribution [0, 0.1)
-        pr = 0.3 + 0.7*npr.random()            # draw from a uniform distribution [0.3, 1.)
+        pr = 0.2 + 0.8*npr.random()            # draw from a uniform distribution [0.2, 1.)
+        s  = 0.05*npr.random()
     
     PARAMETERS['s'] = (s, 'selection coefficient')        # selection advantage for adaptive trait
     PARAMETERS['pr'] = (pr, 'rejection probability')
@@ -412,19 +416,30 @@ rl = hex2color('#FBE6DA')   # light red
 bl = hex2color('#DEEBF2')   # light blue
 bd = hex2color('#15508D')   # dark blue
 
-cdict = {'red':   [(0.,    rd[0], rd[0]),
-                   (0.495, rl[0],    1.),
-                   (0.505,    1., bl[0]),
-                   (1.,    bd[0], bd[0])],
-         'green': [(0.,    rd[1], rd[1]),
-                   (0.495, rl[1],    1.),
-                   (0.505,    1., bl[1]),
-                   (1.,    bd[1], bd[1])],
-         'blue':  [(0.,    rd[2], rd[2]),
-                   (0.495, rl[2],    1.),
-                   (0.505,    1., bl[2]),
-                   (1.,    bd[2], bd[2])]}
+w = 0.005  # width of the white segment
+v1 = 0.5 - w/2.
+v2 = 0.5 + w/2.
+
+cdict = {'red':   [(0.,  rd[0],  rd[0]),
+                   (v1,  rl[0],     1.),
+                   (v2,     1.,  bl[0]),
+                   (1.,  bd[0],  bd[0])],
+         'green': [(0.,  rd[1],  rd[1]),
+                   (v1,  rl[1],     1.),
+                   (v2,     1.,  bl[1]),
+                   (1.,  bd[1],  bd[1])],
+         'blue':  [(0.,  rd[2],  rd[2]),
+                   (v1,  rl[2],     1.),
+                   (v2,     1.,  bl[2]),
+                   (1.,  bd[2],  bd[2])]}
 mycmap = LinearSegmentedColormap('MyCmap', cdict)
+
+# plot the colormap:
+a=outer(ones(10),arange(0,1,0.001))
+figure(figsize=(10,0.4))
+grid(False)
+axis('off')
+imshow(a,aspect='auto',cmap=mycmap,origin="lower")
 
 # <codecell>
 
@@ -432,7 +447,7 @@ mycmap = LinearSegmentedColormap('MyCmap', cdict)
 fig_width_pt = 500.0                    # Get this from LaTeX using \showthe\columnwidth
 inches_per_pt = 1.0/72.27               # Convert pt to inches
 fig_width = fig_width_pt*inches_per_pt  # width in inches
-fig_height =fig_width *0.75             # height in inches
+fig_height =fig_width *0.8             # height in inches
 fig_size = [fig_width,fig_height]
 params = {'backend': 'ps',
           'text.usetex': True,
@@ -458,15 +473,16 @@ Y = diffs[:,1]
 Z = diffs[:,2]
 
 xmin, xmax = 0., 1.
-ymin, ymax = 0., 1.
+ymin, ymax = 0., 0.5
 
 # generate griddata for contour plot:
-numspaces = int(math.sqrt(n))
+numspaces = 2*int(math.sqrt(n))
 xi = linspace(xmin, xmax, numspaces)
 yi = linspace(ymin, ymax, numspaces)
 zi = griddata((X, Y), Z, (xi[None,:], yi[:,None]), method='nearest')
 
 figure(1, figsize=fig_size)
+plt.subplots_adjust(0.05,0.13,0.98,0.98,0.,0.)
 plt.imshow(zi, extent=(xmin,xmax,ymin,ymax), 
     cmap=mycmap, 
     norm = matplotlib.colors.Normalize(vmin = -1.0, vmax = 1.0, clip = False), 
@@ -479,7 +495,7 @@ plt.xlim(xmin, xmax)
 plt.ylim(ymin, ymax)
 ax = gca()
 ax.grid(False)
-ax.set_aspect(1.)
+ax.set_aspect(2.)
 
 # add a colorbar:
 cbar = plt.colorbar(ticks=[-1., -0.75, -0.5, -0.25, -0.01, 0.01, 0.25, 0.5, 0.75, 1.])
@@ -491,6 +507,9 @@ plt.setp(cax.yaxis.get_ticklines(minor=False), markersize=0)
 # uncomment the following line to show screening data points:
 #plt.scatter(X, Y, marker='o', color='k', alpha=0.2, s=0.5)
 
+#plot([0.18,0.18], [0., 1], 'k-', lw=1)
+#plot([0.,1.], [0.06, 0.14], 'k-', lw=1)
+#plot([0.,1.], [0.03, 0.02], 'k-', lw=1)
 plt.xlim(xmin, xmax)
 plt.ylim(ymin, ymax)
 ax.xaxis.labelpad = 17
@@ -501,12 +520,12 @@ plt.xlabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Mat
     multialignment='left')
 plt.ylabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Viability selection} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
     multialignment='center')
-plt.text(0.13, 0.5, r'No spread of\\mating preferences', color='0.4', size=12, ha='center', va='center', multialignment='center', rotation='vertical')
-plt.text(0.63, 0.55, r'\textbf{Reinforcement}', color='w', size=14, ha='center', va='center')
-plt.text(0.99, 0.03, r'\textbf{Runaway}', color='w', size=14, ha='right', va='bottom')
-plt.text(0., -0.05, r'Rejection probability', ha='left', va='top')
-plt.text(-0.1, 0., r'Selection coefficient', ha='left', va='bottom', rotation='vertical')
-plt.savefig('images/Screening_viabilityselection_vs_preferencestrength.pdf')
+plt.text(0.08, 0.25, r'No spread of\\mating preferences', color='0.4', size=12, ha='center', va='center', multialignment='center', rotation='vertical')
+plt.text(0.63, 0.3, r'\textbf{Reinforcement}', color='w', size=14, ha='center', va='center')
+plt.text(0.9, 0.085, r'\textbf{Runaway}', color='w', size=14, ha='right', va='top')
+plt.text(0., -0.025, r'Rejection probability, $\ r$', ha='left', va='top')
+plt.text(-0.1, 0., r'Selection coefficient, $\ s$', ha='left', va='bottom', rotation='vertical')
+plt.savefig('images/costly_s_vs_r.pdf')
 
 # <codecell>
 

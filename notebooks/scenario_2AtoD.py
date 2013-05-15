@@ -78,8 +78,8 @@ print utils.loci2string(LOCI, ALLELES)
 
 # <codecell>
 
-sid = 2     # scenario id
-rid = 'A'     # id of simulation run
+sid = '2AtoE'     # scenario id
+rid = 1     # id of simulation run
 
 # <codecell>
 
@@ -88,18 +88,19 @@ PARAMETERS = {
     't': (0.9, 'transmission rate'),            # transmission of Wolbachia
     'f': (0.1, 'fecundity reduction'),          # Wolbachia-infected females are less fecund
     'm': (0.01, 'migration rate'),              # symmetric migration
-    's': (0.1, 'selection coefficient'),        # selection advantage for adaptive trait
+    's': (0.5, 'selection coefficient'),        # selection advantage for adaptive trait
     'pt': (1., 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'), # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
-    'nmax': (30000, 'max generation'),          # max number of generations to iterate for each stage of the simulation
+    'nmin': (1000, 'min generation'),            # run at least `nmin` generations in search of equilibrium
+    'nmax': (300000, 'max generation'),         # max number of generations to iterate for each stage of the simulation
     'step': (10, 'storage stepsize')            # store metapopulation state every `step` generations
 }
 # For mating preference parameters, we use a different notation:
 trait_preferences = {                        # female mating preferences (rejection probabilities)
     'P0': {'baseline': 0.},
-    'P1': {'baseline': 1., 'T1': 0.},
-    'P2': {'baseline': 1., 'T2': 0.}
+    'P1': {'baseline': 0.5, 'T1': 0.},
+    'P2': {'baseline': 0.5, 'T2': 0.}
 }
 PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
 # make parameter names locally available:
@@ -114,7 +115,7 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-overwrite_run = False
+overwrite_run = True
 data_available = False
 rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
 # select existing scenario, initialize a new one if this fails:
@@ -413,6 +414,7 @@ if not data_available:
         nmax,
         weights,
         thresh_total=eq,
+        n_min=nmin,
         step=step,
         runstore=rstore,
         progress_bar=show_progressbar,
@@ -470,6 +472,7 @@ if not data_available:
         nmax,
         weights,
         thresh_total=eq,
+        n_min=nmin,
         step=step,
         runstore=rstore,
         progress_bar=show_progressbar,
@@ -482,7 +485,7 @@ else:
 
 # <headingcell level=3>
 
-# 4.4 Final state
+# 4.4 Runaway
 
 # <codecell>
 
@@ -498,6 +501,60 @@ fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 # <codecell>
 
 print TP
+
+# <headingcell level=3>
+
+# 4.5 Preferences become costly
+
+# <codecell>
+
+PARAMETERS['pt'] = (0.9, 'transition probability')       # probability of transition into another mating round
+# make parameter names locally available:
+config = utils.configure_locals(LOCI, ALLELES, PARAMETERS)
+locals().update(config)
+# print all parameters:
+print utils.params2string(PARAMETERS)
+
+# update weight:
+TP.pt = pt
+TP.parameters['pt'] = pt
+weights['dynamic_reproduction'][0] = (TP, ['trait'])
+print '\n', TP
+
+# <codecell>
+
+#intro_allele = 'T2'
+#metapop.freqs[:,1,:,:] = 0.
+#print metapop
+
+#metapop.introduce_allele('pop2', intro_allele, intro_freq=intro, advance_generation_count=True)
+#rstore.dump_data(metapop)
+#rstore.record_special_state(metapop.generation, 'intro {0}'.format(intro_allele))
+
+# <codecell>
+
+if not data_available:
+    metapop.run(
+        nmax,
+        weights,
+        thresh_total=eq,
+        n_min=nmin,
+        step=step,
+        runstore=rstore,
+        progress_bar=show_progressbar,
+        verbose=True
+    )
+else:
+    g,desc = special_states.pop()
+    freqs,g = rstore.get_frequencies(g)
+    metapop.set(g, freqs, desc)
+
+# <codecell>
+
+print metapop
+print metapop.overview()
+print
+fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
 
 # <headingcell level=3>
 
@@ -520,4 +577,7 @@ fig = rstore.plot_sums(figsize=[max_figwidth, figheight])
 # <codecell>
 
 rstore.close()
+
+# <codecell>
+
 

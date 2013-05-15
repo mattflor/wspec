@@ -24,7 +24,7 @@ for mod in [core,storage,analytical,utils,viz]:     # reload the wspec modules i
     
 #np.set_printoptions(precision=4, suppress=True, linewidth=100)
 np.set_printoptions(suppress=True, linewidth=100)
-npr.seed(94832)
+npr.seed(230985)
 
 # <markdowncell>
 
@@ -89,52 +89,50 @@ def popdiff(metapop):
                 d[j,i] = d[i,j]
     return d
 
-def popdiff2(current, initial):
-    """
-    Measure frequency differences between populations. This function returns a NxN matrix containing 
-    values between 0 and L-1 where N is the number of populations and L is the number of loci.
-    In this version, the change from the initial equilibrium is also taken into account.
-    """
-    n = current.n_pops
-    d = np.zeros((n,n), float)
-    for i in range(n):
-        d[i] += np.sum( np.abs(current.freqs-initial.freqs) )
-        for j in range(i,n):
-            for loc in current.loci[1:]:
-                sums = current.get_sums(loc)
-                d[i,j] += np.max( np.abs(sums[i] - sums[j]) )
-                d[j,i] = d[i,j]
-    return d
-
-def classify(diff, difftype=2, thresh=1e-4):
-    if diff < thresh:
-        return 'nothing'
-    elif thresh < diff < 2:
-        return 'runaway'
-    else:
-        return 'reinforcement'
-
 # <headingcell level=3>
 
 # 2.2 Parameters
 
+# <markdowncell>
+
+# Beware of the `step` parameter as the size of the HDF5 database is strongly affected by its value. If we are not interested in every single dynamical process but rather in the final outcome then might set `step = 1e6` which will only record special states like initial frequencies, equilibria, or when new alleles have been introduced.
+
 # <codecell>
 
-sid = '2screen2'     # scenario id
+sid = '2screen3'     # scenario id
 PARAMETERS = {
     'lCI': (0.9, 'CI level'),                   # level of cytoplasmic incompatibility
     't': (0.9, 'transmission rate'),            # transmission of Wolbachia
     'f': (0.1, 'fecundity reduction'),          # Wolbachia-infected females are less fecund
     'm': (0.01, 'migration rate'),              # symmetric migration
-    'pt': (0.9, 'transition probability'),       # probability of transition into another mating round
     'intro': (0.001, 'introduction frequency'), # introduction frequency of preference mutant allele
     'eq': (1e-6, 'equilibrium threshold'),      # equilibrium threshold (total frequency change)
     'nmin': (1000, 'min generation'),            # run at least `nmin` generations in search of equilibrium
     'nmax': (300000, 'max generation'),         # max number of generations to iterate for each stage of the simulation
     'step': (10, 'storage stepsize')            # store metapopulation state every `step` generations
 }
+# For mating preference parameters, we use a different notation:
+pr = 0.8
+trait_preferences = {                        # female mating preferences (rejection probabilities)
+    'P0': {'baseline': 0.},
+    'P1': {'baseline': pr, 'T1': 0.},
+    'P2': {'baseline': pr, 'T2': 0.}
+}
+PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
+# make parameter names locally available:
+config = utils.configure_locals(LOCI, ALLELES, PARAMETERS)
+locals().update(config)
+
 print 'Parameters that are the same for all runs in the screening:\n'
 print utils.params2string(PARAMETERS)
+
+# <markdowncell>
+
+# Critical migration rate for these *Wolbachia* parameters:
+
+# <codecell>
+
+print 'm_crit =', np.min(analytical.mcrit_IMA(f, lCI, s, t), analytical.mcrit_UMA(f, lCI, s, t))
 
 # <markdowncell>
 
@@ -142,9 +140,9 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-n = 11000
+n = 4000
 
-screening_dtype = np.dtype([('pr', 'f'), ('s', 'f'), ('diff', 'f')])
+screening_dtype = np.dtype([('pt', 'f'), ('s', 'f'), ('diff', 'f')])
 rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
 # select existing scenario, initialize a new one if this fails:
 try:
@@ -162,32 +160,33 @@ except:
 if n >= maxcount:
     scenario['screening'].resize((n,))
 
+# <markdowncell>
+
+# The actual screening:
+
 # <codecell>
 
 for i in range(n):
-    if i <= 10000:
-        # we use a U-shaped beta function (low and high values more likely than intermediate ones)
-        # to better explore the corners:
-        s  = npr.beta(a=0.7, b=0.7)
-        pr = npr.beta(a=0.7, b=0.7)
-    elif 10000 < i <= 10500:
-        s  = npr.random()                      # draw from a uniform distribution [0, 1)
-        pr = 0.2 + 0.1*npr.random()            # draw from a uniform distribution [0.2, 0.3)
-    else:
-        s  = 0.1*npr.random()                  # draw from a uniform distribution [0, 0.1)
-        pr = 0.3 + 0.7*npr.random()            # draw from a uniform distribution [0.3, 1.)
-    
+    # we use a U-shaped beta function (low and high values more likely than intermediate ones)
+    # to better explore the corners:
+    if i <= 2000:
+        pt = npr.beta(a=0.7, b=0.7)
+        s  = 0.5*npr.beta(a=0.7, b=0.7)
+    elif (2000 < i < 2500) or (3500 < i <= 4000):
+        s  = 0.5*npr.random()
+        pt_min = (s + 4.)/5.
+        pt = pt_min + (1.-pt_min)*npr.random()
+    elif 2500 <= i <= 3500:
+        s  = 0.5*npr.random()
+        pt_min = 0.85 - np.sqrt(s/1.6)
+        pt = pt_min + np.min(0.2, 1.-pt_min)*npr.random()
+        
     PARAMETERS['s'] = (s, 'selection coefficient')        # selection advantage for adaptive trait
-    PARAMETERS['pr'] = (pr, 'rejection probability')
-    # For mating preference parameters, we use a different notation:
-    trait_preferences = {                        # female mating preferences (rejection probabilities)
-        'P0': {'baseline': 0.},
-        'P1': {'baseline': pr, 'T1': 0.},
-        'P2': {'baseline': pr, 'T2': 0.}
-    }
-    rid = 'pr{0:.12f}_s{1:.12f}'.format(pr,s)      # generate id of simulation run based on pr and pt values
-    PARAMETERS = utils.add_preferences(PARAMETERS, trait_preferences)
-    # make parameter names locally available:
+    PARAMETERS['pt'] = (pt, 'transition probability')       # probability of transition into another mating round
+    
+    rid = 'pt{0:.12f}_s{1:.12f}'.format(pt,s)      # generate id of simulation run based on pr and pt values
+    
+    # make parameter names locally available again:
     config = utils.configure_locals(LOCI, ALLELES, PARAMETERS)
     locals().update(config)
 
@@ -377,11 +376,11 @@ for i in range(n):
         
         #diff = popdiff2(metapop, initial)[0,1]
         diff = popdiff(metapop)[0,1] - base_diff
-        scenario['screening'][i] = (pr, s, diff)
+        scenario['screening'][i] = (pt, s, diff)
         scenario['counter'][()] += 1
         
         print '\n^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^'
-        print 'i = {0}\npr = {1}\ns  = {2}\ndiff = {3}\n'.format(i,pr,s,diff)
+        print 'i = {0}\npt = {1}\ns = {2}\ndiff = {3}\n'.format(i,pt,s,diff)
         print metapop
         print metapop.overview()
         print
@@ -391,13 +390,21 @@ for i in range(n):
         # fig = viz.plot_overview(metapop, show_generation=False, figsize=figsize)
         # fig = rstore.plot_sums(figsize=[max_figwidth, figheight])
 
+# <markdowncell>
+
+# Collecting and printing outcomes for all parameter combinations:
+
 # <codecell>
 
 c = scenario['counter'][()]
 diffs = np.array( [[x,y,z] for (x,y,z) in scenario['screening'][:c]] )    # convert lenght n array of 3-tuples to array of shape (n,3)
-print '   pr      s       diff   '
+print '   pt      s       diff   '
 print '--------------------------'
 print diffs
+
+# <headingcell level=2>
+
+# Plot
 
 # <markdowncell>
 
@@ -412,19 +419,30 @@ rl = hex2color('#FBE6DA')   # light red
 bl = hex2color('#DEEBF2')   # light blue
 bd = hex2color('#15508D')   # dark blue
 
-cdict = {'red':   [(0.,    rd[0], rd[0]),
-                   (0.495, rl[0],    1.),
-                   (0.505,    1., bl[0]),
-                   (1.,    bd[0], bd[0])],
-         'green': [(0.,    rd[1], rd[1]),
-                   (0.495, rl[1],    1.),
-                   (0.505,    1., bl[1]),
-                   (1.,    bd[1], bd[1])],
-         'blue':  [(0.,    rd[2], rd[2]),
-                   (0.495, rl[2],    1.),
-                   (0.505,    1., bl[2]),
-                   (1.,    bd[2], bd[2])]}
+w = 0.005  # width of the white segment
+v1 = 0.5 - w/2.
+v2 = 0.5 + w/2.
+
+cdict = {'red':   [(0.,  rd[0],  rd[0]),
+                   (v1,  rl[0],     1.),
+                   (v2,     1.,  bl[0]),
+                   (1.,  bd[0],  bd[0])],
+         'green': [(0.,  rd[1],  rd[1]),
+                   (v1,  rl[1],     1.),
+                   (v2,     1.,  bl[1]),
+                   (1.,  bd[1],  bd[1])],
+         'blue':  [(0.,  rd[2],  rd[2]),
+                   (v1,  rl[2],     1.),
+                   (v2,     1.,  bl[2]),
+                   (1.,  bd[2],  bd[2])]}
 mycmap = LinearSegmentedColormap('MyCmap', cdict)
+
+# plot the colormap:
+a=outer(ones(10),arange(0,1,0.001))
+figure(figsize=(10,0.4))
+grid(False)
+axis('off')
+imshow(a,aspect='auto',cmap=mycmap,origin="lower")
 
 # <codecell>
 
@@ -437,7 +455,7 @@ fig_size = [fig_width,fig_height]
 params = {'backend': 'ps',
           'text.usetex': True,
           'text.family': 'sans-serif',
-          'text.latex.preamble': [r"\usepackage{mathtools}"],   # we need this for the \mathmakebox command
+          'text.latex.preamble': [r"\usepackage{mathtools}"],
           'axes.labelsize': 10,
           'text.fontsize': 12,
           'legend.fontsize': 10,
@@ -458,10 +476,101 @@ Y = diffs[:,1]
 Z = diffs[:,2]
 
 xmin, xmax = 0., 1.
-ymin, ymax = 0., 1.
+ymin, ymax = 0., 0.5
 
 # generate griddata for contour plot:
-numspaces = int(math.sqrt(n))
+numspaces = 2*int(math.sqrt(n))
+xi = linspace(xmin, xmax, numspaces)
+yi = linspace(ymin, ymax, numspaces)
+zi = griddata((X, Y), Z, (xi[None,:], yi[:,None]), method='nearest')
+
+figure(1, figsize=fig_size)
+plt.imshow(zi, extent=(xmin,xmax,ymin,ymax), 
+    cmap=mycmap, 
+    norm = matplotlib.colors.Normalize(vmin = -1.0, vmax = 1.0, clip = False), 
+    vmin=-1., vmax=1., 
+    origin='lower', 
+    aspect='auto', 
+    interpolation=None)  # use default interpolation
+plt.clim(-1., 1.)
+plt.xlim(xmin, xmax)
+plt.ylim(ymin, ymax)
+ax = gca()
+ax.grid(False)
+ax.set_aspect(2.)
+
+# add a colorbar:
+cbar = plt.colorbar(ticks=[-1., -0.75, -0.5, -0.25, -0.01, 0.01, 0.25, 0.5, 0.75, 1.])
+cax = cbar.ax
+cax.set_yticklabels(['--1.0', '--0.75', '--0.5', '--0.25', '0.0', '', '0.25', '0.5', '0.75', '1.0'])
+cax.set_ylabel(r'$\xleftarrow{\mathmakebox[8em]{\textstyle\text{decreasing}}}$ {\large Divergence} $\xrightarrow{\mathmakebox[8em]{\textstyle\text{increasing}}}$')
+plt.setp(cax.yaxis.get_ticklines(minor=False), markersize=0)
+
+# uncomment the following line to show screening data points:
+#plt.scatter(X, Y, marker='o', color='k', alpha=0.2, s=0.5)
+
+plt.xlim(xmin, xmax)
+plt.ylim(ymin, ymax)
+ax.xaxis.labelpad = 17
+ax.yaxis.labelpad = 17
+ax.set_xticklabels(ax.get_xticks(), ticks_font)
+ax.set_yticklabels(ax.get_yticks(), ticks_font)
+plt.xlabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{high}}}$ {\large Preference costs} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{low}}}$',
+    multialignment='left')
+plt.ylabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Viability selection} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
+    multialignment='center')
+plt.text(0.1, 0.15, r'No spread of\\mating preferences', color='0.4', size=12, ha='left', multialignment='center')
+plt.text(0.55, 0.4, r'\textbf{Reinforcement}', color='w', size=14, ha='left')
+plt.text(0.99, 0.02, r'\textbf{Runaway}', color='w', size=14, ha='right', va='bottom', rotation='vertical')
+plt.text(0., -0.025, r'Transition probability, $\ p$', ha='left', va='top')
+plt.text(-0.1, 0., r'Selection coefficient, $\ s$', ha='left', va='bottom', rotation='vertical')
+#plt.savefig('/home/flor/Documents/Manuscripts/Runaways and reinforcement/Screening_costs_vs_preferencestrength.pdf')
+plt.savefig('images/costly_s_vs_p.pdf')
+
+# <codecell>
+
+len(diffs)
+
+# <codecell>
+
+rstore.close()
+
+# <codecell>
+
+# set up figure environment:
+fig_width_pt = 500.0                    # Get this from LaTeX using \showthe\columnwidth
+inches_per_pt = 1.0/72.27               # Convert pt to inches
+fig_width = fig_width_pt*inches_per_pt  # width in inches
+fig_height =fig_width *0.75             # height in inches
+fig_size = [fig_width,fig_height]
+params = {'backend': 'ps',
+          'text.usetex': True,
+          'text.family': 'sans-serif',
+          'text.latex.preamble': [r"\usepackage{mathtools}"],
+          'axes.labelsize': 10,
+          'text.fontsize': 12,
+          'legend.fontsize': 10,
+          'xtick.labelsize': 10,
+          'ytick.labelsize': 10,
+          'figure.figsize': fig_size}
+plt.rcParams.update(params)
+ticks_font = font_manager.FontProperties(
+    family='Helvetica',
+    style='normal',
+    size=10,
+    weight='normal',
+    stretch='normal')
+
+# actual data:
+X = diffs[:,0]
+Y = diffs[:,1]
+Z = diffs[:,2]
+
+xmin, xmax = 0.5, 1.
+ymin, ymax = 0., 0.5
+
+# generate griddata for contour plot:
+numspaces = 2*int(math.sqrt(n))
 xi = linspace(xmin, xmax, numspaces)
 yi = linspace(ymin, ymax, numspaces)
 zi = griddata((X, Y), Z, (xi[None,:], yi[:,None]), method='nearest')
@@ -492,29 +601,23 @@ plt.setp(cax.yaxis.get_ticklines(minor=False), markersize=0)
 #plt.scatter(X, Y, marker='o', color='k', alpha=0.2, s=0.5)
 
 plt.xlim(xmin, xmax)
+ax.set_xlim(ax.get_xlim()[::-1])
 plt.ylim(ymin, ymax)
 ax.xaxis.labelpad = 17
 ax.yaxis.labelpad = 17
 ax.set_xticklabels(ax.get_xticks(), ticks_font)
 ax.set_yticklabels(ax.get_yticks(), ticks_font)
-plt.xlabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Mating preference} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
+plt.xlabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{small}}}$ {\large Preference costs} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{large}}}$',
     multialignment='left')
 plt.ylabel(r'$\xleftarrow{\mathmakebox[6em]{\textstyle\text{weak}}}$ {\large Viability selection} $\xrightarrow{\mathmakebox[6em]{\textstyle\text{strong}}}$',
     multialignment='center')
-plt.text(0.13, 0.5, r'No spread of\\mating preferences', color='0.4', size=12, ha='center', va='center', multialignment='center', rotation='vertical')
-plt.text(0.63, 0.55, r'\textbf{Reinforcement}', color='w', size=14, ha='center', va='center')
-plt.text(0.99, 0.03, r'\textbf{Runaway}', color='w', size=14, ha='right', va='bottom')
-plt.text(0., -0.05, r'Rejection probability', ha='left', va='top')
-plt.text(-0.1, 0., r'Selection coefficient', ha='left', va='bottom', rotation='vertical')
-plt.savefig('images/Screening_viabilityselection_vs_preferencestrength.pdf')
-
-# <codecell>
-
-len(diffs)
-
-# <codecell>
-
-rstore.close()
+plt.text(0.52, 0.03, r'No spread of\\mating preferences', color='0.4', size=12, ha='right', multialignment='center')
+plt.text(0.85, 0.35, r'\textbf{Reinforcement}', color='w', size=14, ha='left')
+plt.text(0.98, 0.03, r'\textbf{Runaway}', color='w', size=14, ha='left', va='bottom', rotation='vertical')
+plt.text(1., -0.025, r'Transition probability, $\ p$', ha='left', va='top')
+plt.text(1.05, 0., r'Selection coefficient, $\ s$', ha='left', va='bottom', rotation='vertical')
+#plt.savefig('/home/flor/Documents/Manuscripts/Runaways and reinforcement/Screening_costs_vs_preferencestrength.pdf')
+plt.savefig('images/costly_s_vs_p.pdf')
 
 # <codecell>
 
