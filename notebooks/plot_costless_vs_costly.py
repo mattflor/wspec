@@ -10,6 +10,7 @@ import pandas as pd
 from scipy.interpolate import griddata
 from matplotlib import rc, font_manager
 import matplotlib.pyplot as plt
+from mpl_toolkits.axes_grid1 import AxesGrid
 from IPython.core.display import Image
 # wspec moduls:
 import core, storage, analytical
@@ -28,7 +29,8 @@ scenarios = [('2screen2c','costless'), ('2screen2b','costly')]
 
 data = {}
 for sid,costtype in scenarios:
-    rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
+    #rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
+    rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
     scenario = rstore.get_scenario(sid)
     c = scenario['counter'][()]
     diffs = [[pr,s,d] for (pr,s,d) in scenario['screening'][:c] if s<=0.5]    # convert lenght n array of 3-tuples to array of shape (n,3)
@@ -65,7 +67,7 @@ mycmap = LinearSegmentedColormap('MyCmap', cdict)
 # plot the colormap:
 a=outer(ones(10),arange(0,1,0.001))
 figure(figsize=(10,0.4))
-grid(False)
+#grid(False)
 axis('off')
 imshow(a,aspect='auto',cmap=mycmap,origin="lower")
 
@@ -97,10 +99,17 @@ ticks_font = font_manager.FontProperties(
     weight='normal',
     stretch='normal')
 
-fig = figure(1, figsize=fig_size)
+#fig = figure(1, figsize=fig_size)
+grid = AxesGrid(fig, 131, # similar to subplot(132)
+    nrows_ncols = (1, 2),
+    axes_pad = 0.0,
+    share_all=True,
+    label_mode = "L",
+    cbar_mode="single"
+)
 
 for i,costtype in enumerate(['costless', 'costly']):
-    plt.subplot(1,2,i+1)
+    #plt.subplot(1,2,i+1)
     
     # actual data:
     X = data[costtype][:,0]
@@ -116,16 +125,16 @@ for i,costtype in enumerate(['costless', 'costly']):
     yi = linspace(ymin, ymax, numspaces)
     zi = griddata((X, Y), Z, (xi[None,:], yi[:,None]), method='nearest')
     
-    im = plt.imshow(zi, extent=(xmin,xmax,ymin,ymax), 
+    im = grid[i].imshow(zi, extent=(xmin,xmax,ymin,ymax), 
         cmap=mycmap, 
         norm = matplotlib.colors.Normalize(vmin = -1.0, vmax = 1.0, clip = False), 
         vmin=-1., vmax=1., 
         origin='lower', 
         aspect='auto', 
         interpolation='nearest')  # use default interpolation
-    plt.clim(-1., 1.)
-    plt.xlim(xmin, xmax)
-    plt.ylim(ymin, ymax)
+    #plt.clim(-1., 1.)
+    #plt.xlim(xmin, xmax)
+    #plt.ylim(ymin, ymax)
     ax = gca()
     ax.grid(False)
     ax.set_aspect(2.)
@@ -166,10 +175,11 @@ for i,costtype in enumerate(['costless', 'costly']):
         plt.text(0., -0.025, r'Rejection probability, $\ r$', size=8, ha='left', va='top')
         plt.text(-0.09, 0., r'Selection coefficient, $\ s$', size=8, ha='left', va='bottom', rotation='vertical')
 # add a colorbar to the right subplot:
-left, bottom, right, top = 0.1, 0.2, 0.9, 0.9
-plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, hspace=0.1, wspace=0.2)
-cbar_ax = fig.add_axes([0.85, bottom, 0.02, top-bottom])
-cbar = plt.colorbar(im, cax=cbar_ax, ticks=[-1., -0.75, -0.5, -0.25, -0.01, 0.01, 0.25, 0.5, 0.75, 1.])
+#left, bottom, right, top = 0.1, 0.2, 0.9, 0.9
+#plt.subplots_adjust(left=left, bottom=bottom, right=right, top=top, hspace=0.1, wspace=0.2)
+#cbar_ax = fig.add_axes([0.85, bottom, 0.02, top-bottom])
+cbar = plt.colorbar(im, cax=grid.cbar_axes[0], ticks=[-1., -0.75, -0.5, -0.25, -0.01, 0.01, 0.25, 0.5, 0.75, 1.])
+grid.cbar_axes[0].colorbar(im)
 cbar_ax.set_yticklabels(['--1.0', '--0.75', '--0.5', '--0.25', '0.0', '', '0.25', '0.5', '0.75', '1.0'])
 cbar_ax.set_ylabel(r'$\xleftarrow{\mathmakebox[8em]{\textstyle\text{decreasing}}}$ {\large Divergence} $\xrightarrow{\mathmakebox[8em]{\textstyle\text{increasing}}}$')
 plt.setp(cbar_ax.yaxis.get_ticklines(minor=False), markersize=0)
@@ -178,20 +188,33 @@ plt.savefig('images/costless_vs_costly.pdf')  #, bbox_inches='tight', dpi=600)
 
 # <codecell>
 
-from mpl_toolkits.axes_grid import AxesGrid
+from mpl_toolkits.axes_grid1 import AxesGrid
 
 # <codecell>
 
-import matplotlib as mpl
-mpl.__version__
+grid = AxesGrid(fig, 132, # similar to subplot(132)
+    nrows_ncols = (2, 2),
+    axes_pad = 0.0,
+    share_all=True,
+    label_mode = "L",
+    cbar_mode="single"
+)
 
-# <codecell>
+for i in range(4):
+    im = grid[i].imshow(zi, extent=(xmin,xmax,ymin,ymax), 
+        cmap=mycmap, 
+        norm = matplotlib.colors.Normalize(vmin = -1.0, vmax = 1.0, clip = False), 
+        vmin=-1., vmax=1., 
+        origin='lower', 
+        aspect='auto', 
+        interpolation='nearest')  # use default interpolation
+    im = grid[i].imshow(Z, extent=extent, interpolation="nearest")
+plt.colorbar(im, cax = grid.cbar_axes[0])
+grid.cbar_axes[0].colorbar(im)
 
-mpl??
-
-# <codecell>
-
-!echo $PYTHONPATH
+# This affects all axes as share_all = True.
+grid.axes_llc.set_xticks([-2, 0, 2])
+grid.axes_llc.set_yticks([-2, 0, 2])
 
 # <codecell>
 
