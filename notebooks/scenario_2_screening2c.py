@@ -142,10 +142,11 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-n = 3500
+n = 35  #00
 
 screening_dtype = np.dtype([('pr', 'f'), ('s', 'f'), ('diff', 'f')])
-rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
+#rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
+rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
 # select existing scenario, initialize a new one if this fails:
 try:
     scenario = rstore.select_scenario(sid, verbose=False)
@@ -165,20 +166,20 @@ if n >= maxcount:
 # <codecell>
 
 for i in range(n):
-    if i <= 1000:
+    if i <= 10:  #00:
         # we use a U-shaped beta function (low and high values more likely than intermediate ones)
         # to better explore the corners:
         s  = 0.5*npr.beta(a=0.7, b=0.7)        #  s in [0, 0.5)
         pr = npr.beta(a=0.7, b=0.7)            #  pr in [0, 1)
-    elif 1000 < i <= 1500:
+    elif 10 < i <= 15:
         s  = 0.05 + 0.45*npr.random()
         a, b = 1.67, 0.2
         pr_min = np.max(0., (s-b)/a)
         pr = pr_min + 0.1*npr.random()
-    elif 1500 <= i < 2000:
+    elif 15 <= i < 20:
         s  = 0.05*npr.random()                 # draw from a uniform distribution [0, 0.05)
         pr = npr.random()                      # draw from a uniform distribution [0, 1)
-    elif 2000 <= i < 3000:
+    elif 20 <= i < 30:
         s  = 0.05 + 0.45*npr.random() 
         a, b = 1., 0.05
         pr_min = (s-b)/a

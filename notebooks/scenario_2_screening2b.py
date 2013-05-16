@@ -142,10 +142,11 @@ print utils.params2string(PARAMETERS)
 
 # <codecell>
 
-n = 3500
+n = 350
 
 screening_dtype = np.dtype([('pr', 'f'), ('s', 'f'), ('diff', 'f')])
-rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
+#rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
+rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
 # select existing scenario, initialize a new one if this fails:
 try:
     scenario = rstore.select_scenario(sid, verbose=False)
