@@ -71,6 +71,19 @@ imshow(a,aspect='auto',cmap=mycmap,origin="lower")
 
 # <codecell>
 
+def boundary(s):
+    """
+    Boundary between the two types of runaway processes based on Kirkpatrick (1982).
+
+    s is the selection coefficient (acting at the trait locus)
+    `boundary` returns the rejection probability at which the type changes:
+    If r<boundary then the preference becomes fixed, and
+    if r> boundary then the preferred trait becomes fixed.
+    """
+    return 2*s/(1+s)
+
+# <codecell>
+
 # set up figure environment:
 fig_width_pt = 455                      # Get this from LaTeX using \showthe\textwidth
 inches_per_pt = 1.0/72.27               # Convert pt to inches
