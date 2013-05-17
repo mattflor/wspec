@@ -29,8 +29,8 @@ scenarios = [('2screen2c','costless'), ('2screen2b','costly')]
 
 data = {}
 for sid,costtype in scenarios:
-    rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
-    #rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
+    #rstore = storage.RunStore('/extra/flor/data/notebook_data/scenario_{0}.h5'.format(sid))
+    rstore = storage.RunStore('data/scenario_{0}.h5'.format(sid))
     scenario = rstore.get_scenario(sid)
     c = scenario['counter'][()]
     diffs = [[pr,s,d] for (pr,s,d) in scenario['screening'][:c] if s<=0.5]    # convert lenght n array of 3-tuples to array of shape (n,3)
@@ -338,7 +338,6 @@ import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
 
 fig = figure(1, figsize=[12,10])
-fig.subplots_adjust(left=0.05, right=0.98)
 
 grid = AxesGrid(fig, 111,
     nrows_ncols = (1, 2),
@@ -375,16 +374,8 @@ for i in range(2):
         vmin = zmin,
         vmax = zmax, 
         origin = 'lower', 
-        aspect = 'auto', 
+        aspect = 2., 
         interpolation = 'nearest')
-    
-    #ax.set_xlim(xmin, xmax)
-    #ax.set_ylim(ymin, ymax)
-    #ax.xaxis.labelpad = 17
-    #ax.yaxis.labelpad = 17
-    #ax.set_xticklabels(ax.get_xticks(), ticks_font)
-    #ax.set_yticklabels(ax.get_yticks(), ticks_font)
-    #ax.set_aspect(0.5)
     
     ax.grid(False)
     ax.set_xlabel('x')
